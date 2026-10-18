@@ -113,8 +113,9 @@ yalnızca biri olacak; uygulama bir VSM hesaplayıcısına dönüştürülmemeli
   `node_modules`, `dist` git'e girmemeli (`.gitignore`). Commit öncesi `git status` ile kontrol et.
 - GitHub Actions (`.github/workflows/test.yml`) her push'ta typecheck + test + build çalıştırır. Vercel'in
   derleme komutu da `vercel.json` ile `npm test && npm run build`; test geçmezse yayın yapılmaz.
-  `tsc` betiklerde `node node_modules/typescript/bin/tsc` ile çağrılır: Vercel'de `.bin/tsc` çalıştırma
-  izni olmadan geliyor ("Permission denied", 18.10.2026). Bunu `tsc`'ye geri çevirme.
+  `package.json` betikleri araçları `node node_modules/...` ile çağırır (tsc, vite, vitest): Vercel'de
+  `node_modules/.bin` dosyaları çalıştırma izni olmadan geliyor ("Permission denied", 18.10.2026).
+  Betikleri kısa `tsc` / `vite` / `vitest` biçimine geri çevirme.
 - Hesap ya da kayıt formatı değişirse `src/model/__tests__` altına test ekle; commit öncesi `npm test` ve
   `npm run build` geçmeli. Testler saf model fonksiyonlarını dener (tarayıcı/DOM yok).
 - Yaptığın özelliği tarayıcıda gerçekten dene; denemediğini "çalışıyor" diye sunma.
