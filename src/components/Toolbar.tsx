@@ -1,6 +1,7 @@
 import type { ChangeEvent } from 'react';
 import { useRef } from 'react';
 import type { CloudSession } from '../cloud/useCloudSession';
+import type { MapState } from '../model/types';
 
 /** Yerel taslağın tarayıcıya otomatik kaydı */
 export type SaveState = { kind: 'saved'; at: Date } | { kind: 'pending' } | { kind: 'error' };
@@ -30,6 +31,11 @@ interface Props {
   onZoomOut: () => void;
   onFit: () => void;
   onShowMap: () => void;
+  // Mevcut / gelecek durum
+  activeState: MapState;
+  hasFuture: boolean;
+  onSwitchState: (target: MapState) => void;
+  onRemoveFuture: () => void;
   // Kayıt modu ve bulut
   mode: ModeInfo;
   session: CloudSession;
@@ -178,6 +184,35 @@ export function Toolbar(props: Props) {
       </div>
 
       <div className="toolbar-row toolbar-row-tools">
+        <div className="toolbar-group state-tabs" role="tablist" aria-label="Harita">
+          <span className="group-label">Harita</span>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={props.activeState === 'current'}
+            className={props.activeState === 'current' ? 'is-active' : undefined}
+            onClick={() => props.onSwitchState('current')}
+            data-testid="sekme-mevcut"
+          >
+            Mevcut durum
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={props.activeState === 'future'}
+            className={props.activeState === 'future' ? 'is-active' : undefined}
+            onClick={() => props.onSwitchState('future')}
+            title={props.hasFuture ? undefined : 'Hedef (gelecek durum) haritası oluştur'}
+            data-testid="sekme-gelecek"
+          >
+            {props.hasFuture ? 'Gelecek durum' : '+ Gelecek durum'}
+          </button>
+          {props.activeState === 'future' && (
+            <button type="button" className="danger-text" onClick={props.onRemoveFuture} title="Gelecek durum haritasını sil">
+              Kaldır
+            </button>
+          )}
+        </div>
         <div className="toolbar-group">
           <span className="group-label">Tuval</span>
           <button type="button" onClick={props.onNew} title={isCloud ? 'Açık projenin içeriğini temizler' : 'Taslağı temizler'}>

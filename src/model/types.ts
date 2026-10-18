@@ -8,10 +8,12 @@ import type { Edge, Node } from '@xyflow/react';
  *    stok verisi stok üçgenlerinde (`data.inventory`). İşlem süresi = çevrim süresi (C/T).
  * 5: proseste EPEI, hurda (%) ve parti büyüklüğü; haritada elle girilen "pitch" yerine "paket adedi"
  *    (pitch artık takt × paket adedi olarak hesaplanır).
+ * 6: gelecek durum haritası (`futureState`) ve açık olan harita (`activeState`); çekme/planlama sembolleri,
+ *    süpermarket boyutu ve kaizen verisi.
  * Eski sürüm dosyaları hâlâ açılır; eksik alanlar boş kabul edilir, kaldırılan alanlar yok sayılır.
  */
-export const SCHEMA_VERSION = 5 as const;
-export const SUPPORTED_SCHEMA_VERSIONS = [1, 2, 3, 4, 5] as const;
+export const SCHEMA_VERSION = 6 as const;
+export const SUPPORTED_SCHEMA_VERSIONS = [1, 2, 3, 4, 5, 6] as const;
 
 /** Dosyanın bu uygulamaya ait olduğunu gösteren işaret. */
 export const APP_ID = 'akis-editoru' as const;
@@ -199,6 +201,17 @@ export interface StoredEdge {
   kind: EdgeKind;
 }
 
+/** Projedeki iki harita: mevcut durum ve (isteğe bağlı) gelecek durum. */
+export type MapState = 'current' | 'future';
+
+/** Bir haritanın içeriği. */
+export interface StateContent {
+  viewport: Viewport;
+  vsmMap: VsmMapData;
+  nodes: StoredNode[];
+  edges: StoredEdge[];
+}
+
 /** Kayıt formatının tamamı (JSON dosyası ve yerel kayıt aynı formatı kullanır). */
 export interface DiagramDocument {
   app: typeof APP_ID;
@@ -207,6 +220,11 @@ export interface DiagramDocument {
   savedAt: string;
   viewport: Viewport;
   vsmMap: VsmMapData;
+  /** Mevcut durum haritasının şekilleri (üst düzey alanlar her zaman mevcut durumdur) */
   nodes: StoredNode[];
   edges: StoredEdge[];
+  /** Gelecek durum haritası; henüz oluşturulmadıysa `null` */
+  futureState: StateContent | null;
+  /** Editörde açık olan harita */
+  activeState: MapState;
 }

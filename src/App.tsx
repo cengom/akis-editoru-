@@ -24,13 +24,27 @@ import { PropertiesPanel } from './components/PropertiesPanel';
 import { Timeline } from './components/Timeline';
 import { VsmCanvasContext, type VsmCanvasInfo } from './components/VsmCanvasContext';
 import { Toolbar, type SaveState } from './components/Toolbar';
-import { LIMITS, asHandle, edgeKindProps, fromDocument, makeEdge, makeNode, newId, parseDocumentText, toDocument } from './model/document';
+import {
+  LIMITS,
+  asHandle,
+  edgeKindProps,
+  fromState,
+  makeEdge,
+  makeNode,
+  newId,
+  parseDocumentText,
+  splitStates,
+  toDocument,
+  toStateContent,
+} from './model/document';
 import { createBlankDocument, createExampleDocument } from './model/example';
 import { SHAPES } from './model/shapes';
 import { CLOUD_BACKUP_KEY, STORAGE_KEY, loadCloudBackup, loadFromStorage, saveToStorage, type CloudBackup } from './model/storage';
 import {
   SHAPE_KINDS,
   type DiagramDocument,
+  type MapState,
+  type StateContent,
   type EdgeKind,
   type FlowEdge,
   type ShapeData,
@@ -106,7 +120,8 @@ function findFreeSpot(start: { x: number; y: number }, width: number, height: nu
 
 function Editor() {
   const [initial] = useState(loadInitial);
-  const initialFlow = useMemo(() => fromDocument(initial.doc), [initial]);
+  const initialSplit = useMemo(() => splitStates(initial.doc), [initial]);
+  const initialFlow = useMemo(() => fromState(initialSplit.activeContent), [initialSplit]);
   const [nodes, setNodes, onNodesChange] = useNodesState<ShapeNode>(initialFlow.nodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState<FlowEdge>(initialFlow.edges);
   const [name, setName] = useState(initial.doc.name);
@@ -114,7 +129,10 @@ function Editor() {
   const [confirm, setConfirm] = useState<ConfirmRequest | null>(null);
   const [saveState, setSaveState] = useState<SaveState>({ kind: 'saved', at: new Date() });
   const [viewTick, setViewTick] = useState(0);
-  const [vsmMap, setVsmMap] = useState<VsmMapData>(initial.doc.vsmMap);
+  const [vsmMap, setVsmMap] = useState<VsmMapData>(initialSplit.activeContent.vsmMap);
+  /** Editörde açık olan harita (mevcut / gelecek durum) ve diğer haritanın içeriği */
+  const [activeState, setActiveState] = useState<MapState>(initialSplit.active);
+  const [otherState, setOtherState] = useState<StateContent | null>(initialSplit.otherContent);
   /** Paletten seçilen, yeni çekilecek okların türü */
   const [connectKind, setConnectKind] = useState<EdgeKind>('flow');
   const rf = useReactFlow<ShapeNode, FlowEdge>();
@@ -125,6 +143,16 @@ function Editor() {
 
   /* ---------- VSM hesapları ---------- */
   const summary = useMemo(() => computeSummary(nodes, edges, vsmMap), [nodes, edges, vsmMap]);
+  const otherSummary = useMemo(() => {
+    if (!otherState) return null;
+    const flow = fromState(otherState);
+    return computeSummary(flow.nodes, flow.edges, otherState.vsmMap);
+  }, [otherState]);
+  const compare = otherSummary
+    ? activeState === 'current'
+      ? { current: summary, future: otherSummary }
+      : { current: otherSummary, future: summary }
+    : null;
   const taktSec = summary.takt.seconds;
   const demand = vsmMap.fields.customerDemand;
   // Sürükleme sırasında değişmez; şekiller gereksiz yere yeniden çizilmez.
@@ -266,27 +294,82 @@ function Editor() {
   }, [rf, selectedNodes, selectedEdges]);
 
   /* ---------- Belge değiştirme (yeni / örnek / içe aktarma) ---------- */
-  const replaceDocument = useCallback(
-    (doc: DiagramDocument, fit: boolean) => {
-      const flow = fromDocument(doc);
+  /** Açık haritanın içeriğini değiştirir (diğer haritaya dokunmaz). */
+  const loadActiveContent = useCallback(
+    (content: StateContent, fit: boolean) => {
+      const flow = fromState(content);
       setNodes(flow.nodes);
       setEdges(flow.edges);
-      setName(doc.name);
-      setVsmMap(doc.vsmMap);
+      setVsmMap(content.vsmMap);
       if (fit && flow.nodes.length) {
         // fitView, yeni şekiller ölçüldükten sonra doğru çalışır.
         window.setTimeout(() => void rf.fitView({ padding: 0.15 }), 30);
       } else {
-        void rf.setViewport(doc.viewport);
+        void rf.setViewport(content.viewport);
       }
       setViewTick((t) => t + 1);
     },
     [rf, setNodes, setEdges],
   );
 
+  /** Bütün projeyi değiştirir: ad, iki harita ve hangisinin açık olduğu. */
+  const replaceDocument = useCallback(
+    (doc: DiagramDocument, fit: boolean) => {
+      const split = splitStates(doc);
+      setName(doc.name);
+      setActiveState(split.active);
+      setOtherState(split.otherContent);
+      loadActiveContent(split.activeContent, fit);
+    },
+    [loadActiveContent],
+  );
+
+  /** Mevcut durum ↔ gelecek durum arasında geçiş. */
+  const switchState = (target: MapState, startFrom?: 'copy' | 'blank') => {
+    if (target === activeState) return;
+    const snapshot = toStateContent(nodes, edges, rf.getViewport(), vsmMap);
+    let next = otherState;
+    if (!next) {
+      // Gelecek durum henüz yok: mevcut haritanın kopyasından ya da boş başla.
+      next = startFrom === 'blank' ? { ...snapshot, nodes: [], edges: [] } : (JSON.parse(JSON.stringify(snapshot)) as StateContent);
+    }
+    setOtherState(snapshot);
+    setActiveState(target);
+    loadActiveContent(next, false);
+  };
+
+  const askSwitchState = (target: MapState) => {
+    if (target === 'future' && !otherState) {
+      setConfirm({
+        title: 'Gelecek durum haritası oluştur',
+        message:
+          'Gelecek durum (hedef) haritası mevcut haritanın bir kopyasıyla başlar; üzerinde değişiklik yapıp iki haritayı karşılaştırabilirsiniz. Mevcut harita değişmez.',
+        confirmLabel: 'Mevcut haritadan kopyala',
+        secondary: { label: 'Boş başla', onClick: () => switchState('future', 'blank') },
+        onConfirm: () => switchState('future', 'copy'),
+      });
+    } else switchState(target);
+  };
+
+  const askRemoveFuture = () =>
+    setConfirm({
+      title: 'Gelecek durumu kaldır',
+      message: 'Gelecek durum haritası silinecek ve mevcut durum haritası açılacak. Mevcut durum haritası değişmez.',
+      confirmLabel: 'Gelecek durumu kaldır',
+      danger: true,
+      onConfirm: () => {
+        if (activeState === 'future' && otherState) {
+          setActiveState('current');
+          const current = otherState;
+          setOtherState(null);
+          loadActiveContent(current, false);
+        } else setOtherState(null);
+      },
+    });
+
   /* ---------- Kayıt modları: yerel taslak / bulut proje ---------- */
   const session = useCloudSession();
-  const getDocument = () => toDocument(name, nodes, edges, rf.getViewport(), vsmMap);
+  const getDocument = () => toDocument(name, nodes, edges, rf.getViewport(), vsmMap, activeState, otherState);
   const cp = useCloudProject({
     session,
     initialBackup: initial.cloudBackup,
@@ -312,22 +395,23 @@ function Editor() {
   useEffect(() => {
     if (!inCloud) setSaveState({ kind: 'pending' });
     const timer = window.setTimeout(() => {
-      const doc = toDocument(name, nodes, edges, rf.getViewport(), vsmMap);
+      const doc = toDocument(name, nodes, edges, rf.getViewport(), vsmMap, activeState, otherState);
       if (inCloud) onCloudChange(doc);
       else setSaveState(saveToStorage(doc) ? { kind: 'saved', at: new Date() } : { kind: 'error' });
     }, SAVE_DELAY_MS);
     return () => window.clearTimeout(timer);
-  }, [name, nodes, edges, vsmMap, viewTick, rf, inCloud, cp.project?.id, onCloudChange]);
+  }, [name, nodes, edges, vsmMap, activeState, otherState, viewTick, rf, inCloud, cp.project?.id, onCloudChange]);
 
   const whereText = inCloud ? 'Açık bulut projesinin içeriği değişecek (Kaydet ile buluta yazılır).' : '';
 
   const askNew = () =>
     setConfirm({
       title: 'Tuvali temizle',
-      message: `Mevcut çizim silinip boş bir tuval açılacak. ${whereText} Gerekirse önce JSON olarak dışa aktarın.`,
+      message: `Açık harita (${activeState === 'future' ? 'gelecek durum' : 'mevcut durum'}) silinip boş bir tuval açılacak; diğer harita değişmez. ${whereText} Gerekirse önce JSON olarak dışa aktarın.`,
       confirmLabel: 'Temizle',
       onConfirm: () => {
-        replaceDocument(createBlankDocument(inCloud ? name : 'Yeni diyagram'), false);
+        const blank = createBlankDocument('');
+        loadActiveContent({ viewport: blank.viewport, vsmMap: blank.vsmMap, nodes: [], edges: [] }, false);
         setNotice({ type: 'success', title: 'Boş bir tuval açıldı.' });
       },
     });
@@ -335,7 +419,7 @@ function Editor() {
   const askExample = () =>
     setConfirm({
       title: 'Örnek süreci yükle',
-      message: `Mevcut çizimin yerine örnek üretim süreci açılacak. ${whereText} Gerekirse önce JSON olarak dışa aktarın.`,
+      message: `Projenin yerine (her iki harita) örnek üretim süreci açılacak: mevcut durum ve gelecek durum haritası. ${whereText} Gerekirse önce JSON olarak dışa aktarın.`,
       confirmLabel: 'Örneği yükle',
       onConfirm: () => {
         const example = createExampleDocument();
@@ -346,7 +430,7 @@ function Editor() {
     });
 
   const exportJson = () => {
-    const doc = toDocument(name, nodes, edges, rf.getViewport(), vsmMap);
+    const doc = getDocument();
     const blob = new Blob([JSON.stringify(doc, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const safeName = (name.trim() || 'diyagram').replace(/[^\p{L}\p{N}_-]+/gu, '-').slice(0, 60);
@@ -407,6 +491,10 @@ function Editor() {
         onZoomOut={() => void rf.zoomOut({ duration: 200 })}
         onFit={() => void rf.fitView({ padding: 0.15, duration: 300 })}
         onShowMap={clearSelection}
+        activeState={activeState}
+        hasFuture={activeState === 'future' || otherState !== null}
+        onSwitchState={askSwitchState}
+        onRemoveFuture={askRemoveFuture}
         mode={
           cp.project
             ? { kind: 'cloud', dirty: cp.project.dirty, status: cp.status }
@@ -454,7 +542,8 @@ function Editor() {
       )}
       <div className="workspace">
         <Palette onAdd={addAtCenter} connectKind={connectKind} onConnectKindChange={setConnectKind} />
-        <div className="canvas" ref={wrapper} onDragOver={onDragOver} onDrop={onDrop}>
+        <div className={`canvas${activeState === 'future' ? ' is-future' : ''}`} ref={wrapper} onDragOver={onDragOver} onDrop={onDrop}>
+          {activeState === 'future' && <div className="state-ribbon">Gelecek durum haritası</div>}
           <VsmCanvasContext.Provider value={canvasInfo}>
             <ReactFlow<ShapeNode, FlowEdge>
               nodes={nodes}
@@ -466,7 +555,7 @@ function Editor() {
               onConnect={onConnect}
               isValidConnection={isValidConnection}
               connectionMode={ConnectionMode.Loose}
-              defaultViewport={initial.doc.viewport}
+              defaultViewport={initialSplit.activeContent.viewport}
               fitView={initial.fit}
               fitViewOptions={{ padding: 0.15 }}
               onMoveEnd={() => setViewTick((t) => t + 1)}
@@ -499,6 +588,7 @@ function Editor() {
           onUpdateNode={updateNode}
           vsmMap={vsmMap}
           summary={summary}
+          compare={compare}
           onUpdateEdgeLabel={updateEdgeLabel}
           onUpdateEdgeKind={updateEdgeKind}
           onUpdateMap={setVsmMap}

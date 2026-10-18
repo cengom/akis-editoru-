@@ -32,6 +32,8 @@ import {
   type ShapeNode,
   type StoredEdge,
   type StoredNode,
+  type MapState,
+  type StateContent,
   type Viewport,
   type VsmMapData,
 } from './types';
@@ -62,18 +64,37 @@ export function asEdgeKind(value: string | undefined): EdgeKind {
   return EDGE_KINDS.includes(value as EdgeKind) ? (value as EdgeKind) : 'flow';
 }
 
+/**
+ * Editördeki haritayı kayıt formatına çevirir.
+ * `active`: editörde açık olan harita; `other`: diğer haritanın içeriği (yoksa `null`).
+ * Üst düzey alanlar her zaman mevcut durumdur; gelecek durum `futureState` alanındadır.
+ */
 export function toDocument(
   name: string,
   nodes: ShapeNode[],
   edges: FlowEdge[],
   viewport: Viewport,
   vsmMap: VsmMapData,
+  active: MapState = 'current',
+  other: StateContent | null = null,
 ): DiagramDocument {
+  const content = toStateContent(nodes, edges, viewport, vsmMap);
+  const current = active === 'future' && other ? other : content;
+  const future = active === 'future' ? content : other;
   return {
     app: APP_ID,
     schemaVersion: SCHEMA_VERSION,
     name,
     savedAt: new Date().toISOString(),
+    ...current,
+    futureState: future,
+    activeState: future && active === 'future' ? 'future' : 'current',
+  };
+}
+
+/** Editördeki tek bir haritanın içeriği. */
+export function toStateContent(nodes: ShapeNode[], edges: FlowEdge[], viewport: Viewport, vsmMap: VsmMapData): StateContent {
+  return {
     viewport: { x: viewport.x, y: viewport.y, zoom: viewport.zoom },
     vsmMap: cloneVsmMap(vsmMap),
     nodes: nodes.map((n): StoredNode => {
@@ -141,8 +162,26 @@ export function edgeKindProps(kind: EdgeKind): Pick<FlowEdge, 'type' | 'markerEn
   return { type: kind, markerEnd: EDGE_KIND_SPECS[kind].marker };
 }
 
+/** Bir haritanın içeriğini tuval şekillerine çevirir. */
+export function fromState(content: StateContent): { nodes: ShapeNode[]; edges: FlowEdge[] } {
+  return { nodes: content.nodes.map(makeNode), edges: content.edges.map(makeEdge) };
+}
+
+/** Belgenin mevcut durum içeriği (üst düzey alanlar). */
+export function currentContent(doc: DiagramDocument): StateContent {
+  return { viewport: doc.viewport, vsmMap: doc.vsmMap, nodes: doc.nodes, edges: doc.edges };
+}
+
+/** Editörde açılacak harita ve diğeri. */
+export function splitStates(doc: DiagramDocument): { active: MapState; activeContent: StateContent; otherContent: StateContent | null } {
+  const current = currentContent(doc);
+  if (doc.activeState === 'future' && doc.futureState) return { active: 'future', activeContent: doc.futureState, otherContent: current };
+  return { active: 'current', activeContent: current, otherContent: doc.futureState };
+}
+
+/** Belgenin editörde açık olan haritasını tuval şekillerine çevirir. */
 export function fromDocument(doc: DiagramDocument): { nodes: ShapeNode[]; edges: FlowEdge[] } {
-  return { nodes: doc.nodes.map(makeNode), edges: doc.edges.map(makeEdge) };
+  return fromState(splitStates(doc).activeContent);
 }
 
 /* ---------- Doğrulama ---------- */
@@ -211,42 +250,96 @@ export function parseDocument(raw: unknown): ParseResult {
   }
 
   const name = isStr(raw.name, LIMITS.name) ? raw.name : (fail('"name" alanı geçersiz.'), '');
+  const notes: ParseNotes = { removedValueCount: 0, droppedPitch: false };
+  const failed = () => errors.length > 0;
 
+  const current = parseStateContent(raw, '', fail, failed, notes);
+  if (!current) return { ok: false, errors };
+  // Sürüm 6 öncesinde gelecek durum yoktur.
+  let futureState: StateContent | null = null;
+  if (raw.futureState !== undefined && raw.futureState !== null) {
+    if (!isObject(raw.futureState)) return { ok: false, errors: ['"futureState" alanı geçersiz.'] };
+    futureState = parseStateContent(raw.futureState, 'Gelecek durum – ', fail, failed, notes);
+    if (!futureState) return { ok: false, errors };
+  }
+  const activeState: MapState = raw.activeState === 'future' && futureState ? 'future' : 'current';
+
+  const warnings: string[] = [];
+  if (notes.removedValueCount > 0) {
+    warnings.push(
+      `${notes.removedValueCount} proseste eski "WIP / stok", "değer katan süre" ya da "değer katmayan süre" değerleri vardı. ` +
+        'Klasik VSM yönteminde işlem süresi çevrim süresi (C/T), bekleme ise stok üçgenlerinden geldiği için bu alanlar kaldırıldı; değerler kullanılmadı.',
+    );
+  }
+  if (notes.droppedPitch) {
+    warnings.push(
+      'Elle girilmiş "pitch" değeri kullanılmadı: pitch artık takt × paket adedi olarak hesaplanıyor. ' +
+        'Pitch görmek için VSM genel verilerine "paket adedi" girin.',
+    );
+  }
+  return {
+    ok: true,
+    warnings,
+    doc: {
+      app: APP_ID,
+      schemaVersion: SCHEMA_VERSION,
+      name,
+      savedAt: typeof raw.savedAt === 'string' ? raw.savedAt : new Date().toISOString(),
+      ...current,
+      futureState,
+      activeState,
+    },
+  };
+}
+
+
+interface ParseNotes {
+  removedValueCount: number;
+  droppedPitch: boolean;
+}
+
+/** Bir haritanın (mevcut ya da gelecek durum) içeriğini doğrular: görünüm, harita verileri, şekiller, oklar. */
+function parseStateContent(
+  src: Record<string, unknown>,
+  prefix: string,
+  fail: (msg: string) => void,
+  failed: () => boolean,
+  notes: ParseNotes,
+): StateContent | null {
   let viewport: Viewport = { x: 0, y: 0, zoom: 1 };
-  if (raw.viewport !== undefined) {
-    const v = raw.viewport;
+  if (src.viewport !== undefined) {
+    const v = src.viewport;
     if (isObject(v) && isNum(v.x, LIMITS.coordinate * 10) && isNum(v.y, LIMITS.coordinate * 10) && isNum(v.zoom, 10) && v.zoom > 0) {
       viewport = { x: v.x, y: v.y, zoom: v.zoom };
     } else {
-      fail('"viewport" alanı geçersiz.');
+      fail(`${prefix}"viewport" alanı geçersiz.`);
     }
   }
 
-  if (!Array.isArray(raw.nodes)) fail('"nodes" bir liste olmalı.');
-  if (!Array.isArray(raw.edges)) fail('"edges" bir liste olmalı.');
-  if (errors.length) return { ok: false, errors };
+  if (!Array.isArray(src.nodes)) fail(`${prefix}"nodes" bir liste olmalı.`);
+  if (!Array.isArray(src.edges)) fail(`${prefix}"edges" bir liste olmalı.`);
+  if (failed()) return null;
 
-  const rawNodes = raw.nodes as unknown[];
-  const rawEdges = raw.edges as unknown[];
+  const rawNodes = src.nodes as unknown[];
+  const rawEdges = src.edges as unknown[];
   // Sürüm 3 öncesinde harita verisi yoktur; boş kabul edilir. Hata varsa aşağıda toplu döner.
-  const vsmMap = parseVsmMap(raw.vsmMap, fail) ?? emptyVsmMap();
+  const vsmMap = parseVsmMap(src.vsmMap, fail) ?? emptyVsmMap();
   // Sürüm 5 öncesinde pitch elle girilirdi; artık takt × paket adedinden hesaplanıyor.
-  const droppedPitch =
-    isObject(raw.vsmMap) &&
-    isObject(raw.vsmMap.fields) &&
+  notes.droppedPitch ||=
+    isObject(src.vsmMap) &&
+    isObject(src.vsmMap.fields) &&
     REMOVED_VSM_MAP_FIELD_KEYS.some((k) => {
-      const f = (raw.vsmMap as { fields: Record<string, unknown> }).fields[k];
+      const f = (src.vsmMap as { fields: Record<string, unknown> }).fields[k];
       return isObject(f) && f.value !== null && f.value !== undefined && f.value !== '';
     });
   if (rawNodes.length > LIMITS.nodes) fail(`Çok fazla şekil var (en fazla ${LIMITS.nodes}).`);
   if (rawEdges.length > LIMITS.edges) fail(`Çok fazla bağlantı var (en fazla ${LIMITS.edges}).`);
-  if (errors.length) return { ok: false, errors };
+  if (failed()) return null;
 
-  let removedValueCount = 0;
   const nodes: StoredNode[] = [];
   const nodeIds = new Set<string>();
   rawNodes.forEach((n, i) => {
-    const where = `${i + 1}. şekil`;
+    const where = `${prefix}${i + 1}. şekil`;
     if (!isObject(n)) return fail(`${where} bir nesne değil.`);
     if (!isId(n.id)) return fail(`${where}: "id" geçersiz.`);
     if (nodeIds.has(n.id)) return fail(`${where}: "${n.id}" kimliği birden fazla kez kullanılmış.`);
@@ -266,7 +359,7 @@ export function parseDocument(raw: unknown): ParseResult {
       const vsm = parseVsm(d.vsm, where, fail);
       if (!vsm) return;
       data.vsm = vsm;
-      if (hasRemovedVsmValues(d.vsm)) removedValueCount++;
+      if (hasRemovedVsmValues(d.vsm)) notes.removedValueCount++;
     }
     if (n.kind === 'kaizen') {
       const kaizen = parseKaizen(d.kaizen, where, fail);
@@ -293,7 +386,7 @@ export function parseDocument(raw: unknown): ParseResult {
   const edges: StoredEdge[] = [];
   const edgeIds = new Set<string>();
   rawEdges.forEach((e, i) => {
-    const where = `${i + 1}. bağlantı`;
+    const where = `${prefix}${i + 1}. bağlantı`;
     if (!isObject(e)) return fail(`${where} bir nesne değil.`);
     if (!isId(e.id)) return fail(`${where}: "id" geçersiz.`);
     if (edgeIds.has(e.id)) return fail(`${where}: "${e.id}" kimliği birden fazla kez kullanılmış.`);
@@ -311,34 +404,8 @@ export function parseDocument(raw: unknown): ParseResult {
     edges.push({ id: e.id, source: e.source, target: e.target, sourceHandle, targetHandle, label, kind: kind as EdgeKind });
   });
 
-  if (errors.length) return { ok: false, errors };
-  const warnings: string[] = [];
-  if (removedValueCount > 0) {
-    warnings.push(
-      `${removedValueCount} proseste eski "WIP / stok", "değer katan süre" ya da "değer katmayan süre" değerleri vardı. ` +
-        'Klasik VSM yönteminde işlem süresi çevrim süresi (C/T), bekleme ise stok üçgenlerinden geldiği için bu alanlar kaldırıldı; değerler kullanılmadı.',
-    );
-  }
-  if (droppedPitch) {
-    warnings.push(
-      'Elle girilmiş "pitch" değeri kullanılmadı: pitch artık takt × paket adedi olarak hesaplanıyor. ' +
-        'Pitch görmek için VSM genel verilerine "paket adedi" girin.',
-    );
-  }
-  return {
-    ok: true,
-    warnings,
-    doc: {
-      app: APP_ID,
-      schemaVersion: SCHEMA_VERSION,
-      name,
-      savedAt: typeof raw.savedAt === 'string' ? raw.savedAt : new Date().toISOString(),
-      viewport,
-      vsmMap,
-      nodes,
-      edges,
-    },
-  };
+  if (failed()) return null;
+  return { viewport, vsmMap, nodes, edges };
 }
 
 /** JSON metnini okur ve doğrular. Hatalı metin hiçbir zaman istisna fırlatmaz. */

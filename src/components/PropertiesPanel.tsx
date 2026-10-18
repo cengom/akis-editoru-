@@ -14,6 +14,8 @@ interface Props {
   selectedEdges: FlowEdge[];
   vsmMap: VsmMapData;
   summary: VsmSummary;
+  /** Gelecek durum varsa iki haritanın özeti */
+  compare: { current: VsmSummary; future: VsmSummary } | null;
   onUpdateNode: (id: string, patch: Partial<ShapeData>) => void;
   onUpdateEdgeLabel: (id: string, label: string) => void;
   onUpdateEdgeKind: (id: string, kind: EdgeKind) => void;
@@ -44,6 +46,7 @@ export function PropertiesPanel(props: Props) {
             vsmMap={props.vsmMap}
             summary={props.summary}
             kaizens={props.nodes.filter((n) => n.type === 'kaizen')}
+            compare={props.compare}
             onChange={props.onUpdateMap}
             onSelectNode={props.onSelectNode}
           />

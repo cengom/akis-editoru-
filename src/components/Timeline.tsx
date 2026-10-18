@@ -2,7 +2,7 @@ import type { TimelineStep, VsmSummary } from '../model/vsmCalc';
 import { formatDays, formatDuration, formatPercent, formatQuantity } from '../model/vsm';
 
 /** Zaman çizgisinde stok türünü gösteren kısa işaret */
-const STOCK_PREFIX: Record<string, string> = { inventory: '▲', supermarket: '⊐', fifo: 'FIFO', safetyStock: '▣' };
+const STOCK_PREFIX: Record<string, string> = { inventory: '▲', supermarket: '⊐', fifo: '⇉', safetyStock: '▣' };
 
 interface Props {
   summary: VsmSummary;

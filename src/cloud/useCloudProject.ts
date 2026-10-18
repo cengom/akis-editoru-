@@ -52,7 +52,9 @@ const ORPHAN_KEY = 'akis-editoru.bulut-yedek.sahipsiz';
 
 /** Değişiklik karşılaştırması: görünüm (viewport) ve kayıt zamanı hariç içerik. */
 function contentSignature(doc: DiagramDocument): string {
-  return JSON.stringify({ n: doc.nodes, e: doc.edges, m: doc.vsmMap });
+  // Üst düzey alanlar her zaman mevcut durumdur; hangi sekmenin açık olduğu değişiklik sayılmaz.
+  const f = doc.futureState;
+  return JSON.stringify({ n: doc.nodes, e: doc.edges, m: doc.vsmMap, f: f && { n: f.nodes, e: f.edges, m: f.vsmMap } });
 }
 
 interface Baseline {

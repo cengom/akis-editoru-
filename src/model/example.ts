@@ -1,3 +1,4 @@
+import { currentContent } from './document';
 import { SHAPES } from './shapes';
 import { emptyInventory, emptyVsm, emptyVsmMap } from './vsm';
 import {
@@ -7,6 +8,7 @@ import {
   type EdgeKind,
   type HandleSide,
   type InventoryData,
+  type StateContent,
   type StockKind,
   type ShapeKind,
   type StoredEdge,
@@ -88,13 +90,15 @@ function exampleMap(): VsmMapData {
 }
 
 export function createExampleDocument(): DiagramDocument {
-  return {
+  const doc: DiagramDocument = {
     app: APP_ID,
     schemaVersion: SCHEMA_VERSION,
     name: 'Örnek üretim süreci',
     savedAt: new Date().toISOString(),
     viewport: { x: 0, y: 0, zoom: 1 },
     vsmMap: exampleMap(),
+    futureState: null,
+    activeState: 'current',
     nodes: [
       node('dep-depo', 'department', -30, -30, 'Depo', 'Malzeme hazırlığı', [690, 380]),
       node('dep-uretim', 'department', 680, -30, 'Üretim', 'Kesim, montaj ve kontrol', [950, 380]),
@@ -194,9 +198,41 @@ export function createExampleDocument(): DiagramDocument {
       edge('stok-mamul', 'top', 'musteri', 'bottom', 'Günlük', 'shipment'),
     ],
   };
+  doc.futureState = exampleFuture(currentContent(doc));
+  return doc;
+}
+
+/**
+ * Örnek gelecek durum (hedef) haritası: mevcut haritanın kopyası üzerinde iyileştirmeler.
+ * Montaj kaizen ile 55 sn'ye iner; Kesim sonrası stok süpermarket, Montaj sonrası stok FIFO olur;
+ * stoklar azalır. Uydurma değerlerdir.
+ */
+function exampleFuture(current: StateContent): StateContent {
+  const c = JSON.parse(JSON.stringify(current)) as StateContent;
+  const byId = (id: string) => c.nodes.find((n) => n.id === id)!;
+  byId('montaj').data.vsm!.fields.cycleTime = { value: 55, unit: 'sn' };
+  byId('kesim').data.vsm!.fields.uptime = { value: 95, unit: '%' };
+  byId('kesim').data.vsm!.fields.scrapRate = { value: 1, unit: '%' };
+  const sm = byId('stok-kesim');
+  Object.assign(sm, { kind: 'supermarket', width: 56, height: 45 });
+  sm.data = {
+    ...sm.data,
+    title: 'Süpermarket',
+    color: '#ffffff',
+    inventory: { stock: { value: 60, unit: 'adet' }, replenishTime: { value: 0.5, unit: 'gün' }, safetyRate: { value: 10, unit: '%' } },
+  };
+  const fifo = byId('stok-montaj');
+  Object.assign(fifo, { kind: 'fifo', width: 54, height: 30 });
+  fifo.data = { ...fifo.data, title: 'FIFO', color: '#ffffff', inventory: { ...emptyInventory(), stock: { value: 0.25, unit: 'gün' } } };
+  byId('stok-hammadde').data.inventory!.stock = { value: 1, unit: 'gün' };
+  byId('stok-mamul').data.inventory!.stock = { value: 150, unit: 'adet' };
+  byId('kaizen-1').data.kaizen = { owner: 'Üretim mühendisliği', dueDate: '2026-12-15', status: 'done' };
+  const pull = c.edges.find((e) => e.id === 'e-kesim-montaj');
+  if (pull) Object.assign(pull, { kind: 'pull', label: 'Çekme' });
+  return c;
 }
 
 /** Boş bir çizim (Temizle ve "Boş tuval" ile yeni proje için). */
 export function createBlankDocument(name: string): DiagramDocument {
-  return { ...createExampleDocument(), name, vsmMap: emptyVsmMap(), nodes: [], edges: [] };
+  return { ...createExampleDocument(), name, vsmMap: emptyVsmMap(), nodes: [], edges: [], futureState: null, activeState: 'current' };
 }

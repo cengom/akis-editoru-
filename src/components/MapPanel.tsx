@@ -4,17 +4,19 @@ import { VSM_MAP_FIELDS, formatDays, formatDuration, formatNumber, formatPercent
 import { QuantityTable } from './QuantityFields';
 import { TaktChart } from './TaktChart';
 import { KaizenList } from './KaizenList';
+import { StateCompare } from './StateCompare';
 
 interface Props {
   vsmMap: VsmMapData;
   kaizens: ShapeNode[];
+  compare: { current: VsmSummary; future: VsmSummary } | null;
   summary: VsmSummary;
   onChange: (map: VsmMapData) => void;
   onSelectNode: (id: string) => void;
 }
 
 /** Hiçbir şey seçili değilken: harita düzeyi VSM verileri ve hesaplanan VSM özeti. */
-export function MapPanel({ vsmMap, summary, kaizens, onChange, onSelectNode }: Props) {
+export function MapPanel({ vsmMap, summary, kaizens, compare, onChange, onSelectNode }: Props) {
   const basic = VSM_MAP_FIELDS.filter((f) => !f.advanced);
   const advanced = VSM_MAP_FIELDS.filter((f) => f.advanced);
   const setField = (key: keyof VsmMapData['fields'], q: VsmMapData['fields'][typeof key]) =>
@@ -178,6 +180,7 @@ export function MapPanel({ vsmMap, summary, kaizens, onChange, onSelectNode }: P
           karşılaştırmasında kullanılır. Boş alanlar toplama katılmaz; 0 katılır.
         </p>
       </section>
+      {compare && <StateCompare current={compare.current} future={compare.future} />}
       <KaizenList kaizens={kaizens} onSelectNode={onSelectNode} />
     </div>
   );
