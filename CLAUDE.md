@@ -43,6 +43,10 @@ yalnızca biri olacak; uygulama bir VSM hesaplayıcısına dönüştürülmemeli
 - `src/components/ErrorBoundary.tsx` — beklenmeyen hatada çıkan ekran (`main.tsx` sarar). Kayıtları
   ayrıştırmadan okur (`rawSavedDrawings`), silmeden yedeğe taşır (`moveDrawingsAside`). Geliştirmede
   `?hata-testi` adresi bilerek hata verir.
+- `public/kilavuz/` — VSM rehberi (statik HTML + `img/` + PDF). `scripts/kilavuz.mjs` (`npm run kilavuz`)
+  headless Chrome'u DevTools protokolüyle sürer: ekran görüntülerini ve PDF'i üretir. Arayüz ya da hesap
+  değişirse rehberin metnini ve sayılarını güncelle, sonra `npm run kilavuz` çalıştır. Rehberdeki örnek
+  sayılar `createExampleDocument` çıktısıdır (testlerle aynı).
 - `src/App.tsx` — editör durumu (nodes/edges), sürükle-bırak, bağlantı, otomatik kayıt, içe/dışa aktarma.
 - `src/cloud/` — bulut katmanı:
   - `types.ts` — `CloudBackend` arayüzü (oturum + proje CRUD). Supabase ve sahte arka uç bunu uygular.

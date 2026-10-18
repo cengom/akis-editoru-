@@ -10,7 +10,8 @@
     "preview": "node node_modules/vite/bin/vite.js preview",
     "dev:sahte-bulut": "VITE_CLOUD_MOCK=1 node node_modules/vite/bin/vite.js --port 5174",
     "test": "node node_modules/vitest/vitest.mjs run",
-    "test:izle": "node node_modules/vitest/vitest.mjs"
+    "test:izle": "node node_modules/vitest/vitest.mjs",
+    "kilavuz": "node scripts/kilavuz.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "2.117.2",

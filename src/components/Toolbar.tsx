@@ -294,6 +294,16 @@ export function Toolbar(props: Props) {
           <button type="button" onClick={props.onShowMap} title="Seçimi kaldırıp VSM genel verilerini ve özeti göster">
             VSM verileri / özet
           </button>
+          <a
+            className="button-link"
+            href="/kilavuz/index.html"
+            target="_blank"
+            rel="noopener"
+            title="Adım adım VSM rehberi (yeni sekmede açılır; PDF olarak da indirilebilir)"
+            data-testid="kilavuz"
+          >
+            ? Kılavuz
+          </a>
         </div>
         <div className="toolbar-group">
           <button type="button" onClick={props.onZoomOut} title="Uzaklaştır" aria-label="Uzaklaştır">

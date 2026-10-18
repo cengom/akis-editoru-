@@ -108,6 +108,7 @@
 - [x] Testleri GitHub'da her push'ta otomatik çalıştırma (GitHub Actions: typecheck + test + build)
 - [x] Vercel yayını testler geçince yapılır (`vercel.json` derleme komutu: `npm test && npm run build`)
 - [x] Zincir verimi (RTY) ve gereken giriş adedi
+- [x] VSM rehberi (uygulama içi `/kilavuz/` + PDF, 22 sayfa; `npm run kilavuz` ile görüntü ve PDF üretimi)
 - [x] Stok değeri (aile birim maliyeti, stok birim değeri, para birimine göre toplam, durum karşılaştırması) — sürüm 10
 - [ ] Zaman çizgisini tuval koordinatlarında (çizimle birlikte yakınlaşan) seçenek olarak sunmak
 - [ ] Vardiya başına net süre girişi (günlük toplamı otomatik hesaplama)

@@ -1,0 +1,558 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>VSM Rehberi – Akış Editörü</title>
+<meta name="description" content="Akış Editörü ile değer akışı haritalama (VSM): adım adım uygulamalı rehber." />
+<style>
+  :root {
+    --text: #111827;
+    --muted: #4b5563;
+    --border: #d1d5db;
+    --accent: #2563eb;
+    --calc: #1d4ed8;
+    --soft: #f3f4f6;
+    --note: #eff6ff;
+    --warn: #fff7ed;
+    --warn-border: #fdba74;
+    --page: #ffffff;
+    font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    font-size: 15px;
+    line-height: 1.55;
+    color: var(--text);
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--soft); }
+  .doc { max-width: 860px; margin: 0 auto; background: var(--page); padding: 32px 40px 60px; }
+  .topbar { position: sticky; top: 0; z-index: 2; background: var(--page); border-bottom: 1px solid var(--border); padding: 8px 16px; display: flex; gap: 8px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
+  .topbar a { color: var(--accent); }
+  .topbar .btn { border: 1px solid var(--border); border-radius: 6px; padding: 4px 10px; text-decoration: none; }
+  h1 { font-size: 30px; line-height: 1.2; margin: 0 0 8px; }
+  h2 { font-size: 22px; margin: 40px 0 8px; padding-top: 8px; border-top: 2px solid var(--text); }
+  h3 { font-size: 17px; margin: 24px 0 6px; }
+  h4 { font-size: 15px; margin: 16px 0 4px; }
+  p, li { max-width: 72ch; }
+  ul, ol { padding-left: 22px; }
+  table { border-collapse: collapse; width: 100%; margin: 10px 0 14px; font-size: 13.5px; }
+  th, td { border: 1px solid var(--border); padding: 5px 7px; text-align: left; vertical-align: top; }
+  thead th { background: var(--soft); }
+  figure { margin: 14px 0 18px; break-inside: avoid; }
+  figure img { max-width: 100%; border: 1px solid var(--border); border-radius: 6px; display: block; }
+  figure.narrow img { max-width: 330px; width: auto; max-height: 900px; }
+  .side { display: grid; grid-template-columns: 300px 1fr; gap: 18px; align-items: start; }
+  .side figure.narrow img { max-width: 100%; }
+  .side figure { margin-top: 4px; }
+  figcaption { font-size: 13px; color: var(--muted); margin-top: 4px; }
+  .calc { color: var(--calc); font-style: italic; font-weight: 600; }
+  .formula { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; background: var(--soft); padding: 1px 5px; border-radius: 4px; font-size: 13.5px; }
+  .box { border: 1px solid var(--border); border-left: 4px solid var(--accent); background: var(--note); padding: 8px 12px; border-radius: 6px; margin: 12px 0; break-inside: avoid; }
+  .box.warn { border-left-color: #ea580c; background: var(--warn); border-color: var(--warn-border); }
+  .box p { margin: 4px 0; }
+  .app { font-weight: 600; }
+  .app::before { content: '▸ '; color: var(--accent); }
+  .muted { color: var(--muted); }
+  .cover { min-height: 60vh; display: flex; flex-direction: column; justify-content: center; }
+  .cover .sub { font-size: 18px; color: var(--muted); margin: 0 0 24px; }
+  .toc ol { line-height: 1.8; }
+  .toc a { color: var(--text); text-decoration: none; border-bottom: 1px dotted var(--muted); }
+  .form td { height: 26px; }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  @media (max-width: 640px) {
+    .doc { padding: 20px 16px 40px; }
+    .side { grid-template-columns: 1fr; }
+    .two { grid-template-columns: 1fr; }
+    table { font-size: 12.5px; }
+    .table-wrap { overflow-x: auto; }
+  }
+  @page { size: A4; margin: 16mm 14mm 18mm; }
+  @media print {
+    :root { font-size: 11pt; }
+    body { background: #fff; }
+    .topbar { display: none; }
+    .doc { max-width: none; padding: 0; }
+    .cover { min-height: 240mm; }
+    h2 { break-before: page; border-top: none; margin-top: 0; }
+    h2.keep { break-before: auto; }
+    .toc { break-before: page; break-inside: avoid; }
+    h3, h4 { break-after: avoid; }
+    table, .box { break-inside: avoid; }
+    a { color: inherit; text-decoration: none; }
+    .toc a { border: none; }
+    figure.narrow img { max-height: 225mm; max-width: 85mm; }
+    .side { grid-template-columns: 70mm 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="topbar" aria-label="Rehber gezinmesi">
+  <a href="/">← Akış Editörü'ne dön</a>
+  <a class="btn" href="akis-editoru-vsm-rehberi.pdf" download>⬇ PDF olarak indir</a>
+</div>
+<main class="doc">
+
+<section class="cover">
+  <h1>Akış Editörü ile Değer Akışı Haritalama</h1>
+  <p class="sub">Adım adım uygulamalı VSM rehberi</p>
+  <p>Bu rehber, değer akışı haritasının (VSM) nasıl hazırlandığını ve her adımın Akış Editörü'nde nasıl
+  yapıldığını birlikte anlatır. Baştan sona uygulamadaki <strong>“Örnek süreç”</strong> haritası kullanılır;
+  aynı sayıları kendi ekranınızda görebilirsiniz.</p>
+  <p class="muted">Örnekteki şirket, ürünler, süreler ve maliyetler tamamen uydurmadır; gerçek bir şirkete ait
+  değildir. Rehber Ekim 2026'daki uygulama sürümüne göre yazıldı (kayıt formatı sürüm 10).</p>
+</section>
+
+<nav class="toc" aria-label="İçindekiler">
+  <h2 class="keep">İçindekiler</h2>
+  <ol>
+    <li><a href="#baslarken">Başlarken: ekran ve kayıt</a></li>
+    <li><a href="#hazirlik">Hazırlık: kapsam ve veri toplama</a></li>
+    <li><a href="#mevcut">Mevcut durum haritasını çizmek</a></li>
+    <li><a href="#analiz">Haritayı okumak: göstergeler</a></li>
+    <li><a href="#gelecek">Gelecek durum haritası</a></li>
+    <li><a href="#kaizen">Kaizen planı ve karşılaştırma</a></li>
+    <li><a href="#karma">Birden fazla ürün ailesi (karma model)</a></li>
+    <li><a href="#kayit">Kaydetme, paylaşma ve dışa aktarma</a></li>
+    <li><a href="#ekler">Ekler: semboller, formüller, veri formu, sık hatalar, kısayollar</a></li>
+  </ol>
+</nav>
+
+<!-- 1 -->
+<h2 id="baslarken">1. Başlarken: ekran ve kayıt</h2>
+<p>Akış Editörü tarayıcıda çalışır; kurulum gerekmez. Genel amaçlı bir akış diyagramı editörüdür; VSM
+sembolleri ve hesapları bunun üzerine eklenmiştir. Yani VSM dışındaki süreçleri de çizebilirsiniz.</p>
+
+<figure>
+  <img src="img/genel.png" alt="Akış Editörü ekranı: üstte araç çubuğu, solda şekil paleti, ortada tuval, sağda panel, altta zaman çizgisi" />
+  <figcaption>Şekil 1 – Ekran düzeni. Örnek süreç açık.</figcaption>
+</figure>
+
+<table>
+  <thead><tr><th>Bölge</th><th>Ne işe yarar?</th></tr></thead>
+  <tbody>
+    <tr><td>Üst çubuk</td><td>Harita adı, kayıt durumu, <em>Mevcut / Gelecek durum</em> sekmeleri, geri al / ileri al, kopyala / yapıştır, örnek süreç, JSON / PNG / yazdırma, aile seçici.</td></tr>
+    <tr><td>Sol palet</td><td>Şekiller (genel, VSM, çekme ve planlama) ve yeni çizilecek okun türü.</td></tr>
+    <tr><td>Tuval</td><td>Haritanın kendisi. Sürükleyerek taşıyın; tekerlekle yakınlaştırın.</td></tr>
+    <tr><td>Sağ panel</td><td>Seçili şeklin ya da okun özellikleri. Hiçbir şey seçili değilken <em>harita verileri</em> ve <em>VSM özeti</em>.</td></tr>
+    <tr><td>Alt şerit</td><td>VSM zaman çizgisi (bekleme ve işlem süresi merdiveni).</td></tr>
+  </tbody>
+</table>
+
+<h3>Temel işlemler</h3>
+<ul>
+  <li><strong>Şekil eklemek:</strong> Paletten tuvale sürükleyin ya da şekle tıklayın (tuvalin ortasına eklenir).</li>
+  <li><strong>Bağlamak:</strong> Fareyi şeklin üzerine getirin; kenarlarda beliren noktadan başka bir şeklin noktasına sürükleyin. Okun türünü önce paletten seçin; sonradan okun panelinden değiştirebilirsiniz.</li>
+  <li><strong>Düzenlemek:</strong> Şekle ya da oka tıklayın; sağ panelden başlık, açıklama, renk ve VSM verilerini girin.</li>
+  <li><strong>Silmek:</strong> Seçip <span class="formula">Delete</span> ya da “Seçileni sil”.</li>
+  <li><strong>Geri almak:</strong> “↶ Geri al” düğmesi ya da <span class="formula">⌘/Ctrl + Z</span>.</li>
+</ul>
+
+<div class="box warn">
+  <p><strong>Kayıt nerede duruyor?</strong> Giriş yapmadan çalışırken çiziminiz <strong>yalnızca bu tarayıcıya</strong>
+  otomatik kaydedilir (yerel taslak). Bu bir bulut kaydı değildir: başka bir bilgisayarda görünmez, tarayıcı
+  verileri silinirse kaybolur. Önemli haritaları düzenli olarak <em>JSON dışa aktar</em> ile dosyaya alın ya da
+  <em>Buluta kaydet</em> kullanın (bkz. <a href="#kayit">bölüm 8</a>).</p>
+</div>
+
+<div class="box">
+  <p><strong>Boş ile sıfır farklıdır.</strong> Bir alanı boş bırakmak “veri yok” demektir ve hesaba katılmaz.
+  0 yazmak gerçek bir değerdir (ör. %0 hurda) ve hesaba katılır.</p>
+  <p><strong>Mavi italik değerler</strong> (<span class="calc">∑ 60 sn</span> gibi) uygulamanın hesapladığı
+  değerlerdir; elle girilemez.</p>
+</div>
+
+<!-- 2 -->
+<h2 id="hazirlik">2. Hazırlık: kapsam ve veri toplama</h2>
+
+<h3>2.1 Ürün ailesini seçin</h3>
+<p>Değer akışı haritası tek bir <strong>ürün ailesi</strong> için çizilir: aynı ya da benzer proses adımlarından
+geçen ürünler. Pek çok ürününüz varsa önce basit bir tablo yapın: satırlarda ürünler, sütunlarda prosesler,
+geçtiği proseslere işaret. Aynı sütunlardan geçen ürünler bir ailedir. Haritaya en çok talebi olan ya da en
+çok sorun yaşanan aileyle başlayın.</p>
+<p>Ürünleriniz aynı prosesleri paylaşıyor ama farklı sürelerle işleniyorsa uygulamada birden fazla aile
+tanımlayabilirsiniz (bkz. <a href="#karma">bölüm 7</a>).</p>
+
+<h3>2.2 Kapsamı belirleyin</h3>
+<p>İlk harita için <strong>kapıdan kapıya</strong> kapsam önerilir: tedarikçiden hammaddenin gelişinden müşteriye
+sevkiyata kadar, tek tesis içinde. Departman sınırlarını değil, ürünün yolunu izleyin.</p>
+
+<h3>2.3 Sahaya gidin ve veriyi kendiniz toplayın</h3>
+<ul>
+  <li>Haritayı masada değil, <strong>sahada</strong> (gemba) ürünün yolunu yürüyerek hazırlayın.</li>
+  <li><strong>Sevkiyattan geriye</strong> doğru yürümek kolaylık sağlar: müşteriye en yakın adım akışın hızını belirler.</li>
+  <li>Süreleri kronometreyle <strong>kendiniz</strong> ölçün; birkaç kez ölçüp ortalamayı ve en kötü değeri not edin. Eski raporlar ve sistem kayıtları çoğu zaman gerçeği göstermez.</li>
+  <li>Stokları aynı gün sayın (adet); hepsini aynı anda görmek bekleme sürelerini doğru gösterir.</li>
+  <li>Bilgi akışını unutmayın: sipariş nasıl geliyor, plan kime, hangi sıklıkla veriliyor?</li>
+</ul>
+<p>Toplanacak verilerin listesi ve boş bir form <a href="#ek-form">Ek C</a>'dedir.</p>
+
+<!-- 3 -->
+<h2 id="mevcut">3. Mevcut durum haritasını çizmek</h2>
+<p>Mevcut durum haritası bugünü olduğu gibi gösterir. Sıra önerisi: müşteri ve talep → prosesler →
+stoklar → malzeme akışı → bilgi akışı → zaman çizgisi.</p>
+
+<h3>3.1 Harita verileri ve takt süresi</h3>
+<div class="side">
+<figure class="narrow">
+  <img src="img/harita-verileri.png" alt="Harita verileri paneli: net çalışma süresi, vardiya, sevkiyat ve ürün ailesi alanları" />
+  <figcaption>Şekil 2 – Harita verileri ve ürün ailesi.</figcaption>
+</figure>
+<div>
+<p class="app">Tuvalde boş bir yere tıklayın (ya da “VSM verileri / özet”). Sağ panelde <em>VSM genel verileri</em> açılır.</p>
+<ul>
+  <li><strong>Net çalışma süresi</strong> (dk/gün): günlük toplam, tüm vardiyalar, molalar ve planlı duruşlar düşülmüş.</li>
+  <li><strong>Vardiya sayısı</strong> ve <strong>sevkiyat sıklığı</strong>: bilgi amaçlıdır.</li>
+  <li><strong>Ürün aileleri:</strong> her aile için <em>müşteri talebi</em> (adet/gün), <em>paket adedi</em> (bir kutudaki adet; pitch için) ve <em>birim maliyet</em> (stok değeri için).</li>
+</ul>
+<p>Uygulama <strong>takt süresini</strong> hesaplar: müşterinin bir ürünü hangi sıklıkla istediği.</p>
+<p><span class="formula">Takt = net çalışma süresi ÷ günlük talep</span> — örnekte
+460 dk × 60 = 27.600 sn ÷ 460 adet = <span class="calc">60 sn</span>.</p>
+</div>
+</div>
+
+<h3>3.2 Müşteri ve tedarikçi</h3>
+<p class="app">Paletin VSM bölümünden <em>Müşteri</em> (sağ üst) ve <em>Tedarikçi</em> (sol üst) fabrika simgelerini ekleyin.</p>
+<p>Müşteri simgesinde talep ve takt kendiliğinden görünür.</p>
+
+<h3>3.3 Prosesler ve veri kutuları</h3>
+<p>Proses kutusu, malzemenin <strong>kesintisiz aktığı</strong> bir alanı temsil eder. Malzeme durup bekliyorsa
+(stok oluşuyorsa) orada yeni bir proses başlar. Her makine ya da kişi ayrı bir kutu olmak zorunda değildir.</p>
+<p class="app">Paletten <em>Proses</em> ekleyin, seçin ve sağ paneldeki <em>VSM verileri</em> bölümünü doldurun.</p>
+
+<div class="table-wrap"><table>
+  <thead><tr><th>Alan</th><th>Anlamı</th><th>Örnek (Kesim)</th></tr></thead>
+  <tbody>
+    <tr><td>Çevrim süresi (C/T)</td><td>Bir parçanın prosesten çıkış aralığı. Zaman çizgisinde işlem süresi olarak kullanılır.</td><td>50 sn</td></tr>
+    <tr><td>Setup / değişim (C/O)</td><td>Bir üründen diğerine geçiş süresi.</td><td>30 dk</td></tr>
+    <tr><td>Uptime</td><td>Planlanan sürenin ne kadarında proses gerçekten çalışabiliyor.</td><td>%85</td></tr>
+    <tr><td>Operatör sayısı</td><td>Bu proseste çalışan kişi.</td><td>1 kişi</td></tr>
+    <tr><td colspan="3"><em>Gelişmiş alanlar</em></td></tr>
+    <tr><td>Mesafe</td><td>Bir önceki adımdan taşıma mesafesi.</td><td>15 m</td></tr>
+    <tr><td>EPEI</td><td>Tüm çeşitlerin bir kez üretildiği döngü (planlanan).</td><td>2 gün</td></tr>
+    <tr><td>Hurda / ret</td><td>Hatalı çıkan parça oranı.</td><td>%3</td></tr>
+    <tr><td>Parti büyüklüğü</td><td>Bir seferde işlenip birlikte taşınan adet.</td><td>120 adet</td></tr>
+    <tr><td>İdeal C/T</td><td>Tasarım / en iyi çevrim süresi (OEE performansı için).</td><td>45 sn</td></tr>
+    <tr><td>Plansız duruş</td><td>Arıza vb. günlük kayıp; uptime boşsa kullanılabilirlik bundan hesaplanır.</td><td>—</td></tr>
+    <tr><td>Değişim sayısı</td><td>Günde kaç kez setup yapılıyor.</td><td>—</td></tr>
+    <tr><td>Ürün çeşidi sayısı</td><td>Bu proseste sırayla üretilen çeşit (EPEI hesabı için).</td><td>3 çeşit</td></tr>
+  </tbody>
+</table></div>
+
+<figure class="narrow">
+  <img src="img/proses-paneli.png" alt="Kesim prosesinin paneli: hız belirleyici seçimi, VSM verileri ve OEE çubukları" />
+  <figcaption>Şekil 3 – Proses paneli (Kesim): hız belirleyici seçimi, OEE, takt uyarısı ve veri alanları.</figcaption>
+</figure>
+
+<p>Girilen değerler prosesin altındaki <strong>veri kutusunda</strong> görünür; kutu prosesle birlikte taşınır.
+Kutuyu “Veri kutusunu tuvalde göster” ile gizleyebilirsiniz.</p>
+
+<h3>3.4 Stoklar</h3>
+<p>Prosesler arasında biriken her stok için bir <strong>stok üçgeni</strong> koyun. Stok miktarını
+<em>adet</em> ya da doğrudan <em>gün</em> olarak girin.</p>
+<p><span class="formula">Bekleme (gün) = stok adedi ÷ günlük talep</span> — örnekte Kesim sonrası 120 adet
+÷ 460 = <span class="calc">0,26 gün</span>.</p>
+<p>Stoğa isterseniz <strong>birim değer</strong> de girin (ör. hammadde 10 TL, mamul 40 TL). Boş bırakırsanız
+ürün ailesinin birim maliyeti kullanılır. Böylece stoğun parasal değeri de hesaplanır.</p>
+
+<h3>3.5 Malzeme ve bilgi akışı</h3>
+<p class="app">Okun türünü paletten seçip şekilleri bağlayın; var olan bir okun türünü okun panelinden değiştirin.</p>
+<table>
+  <thead><tr><th>Ok türü</th><th>Ne zaman?</th></tr></thead>
+  <tbody>
+    <tr><td>Malzeme akışı (itme)</td><td>Bir proses, sonraki ne isterse istesin üretip ileri itiyorsa.</td></tr>
+    <tr><td>Çekme</td><td>Sonraki proses ihtiyacı kadarını süpermarketten çekiyorsa (gelecek durumda).</td></tr>
+    <tr><td>Sevkiyat</td><td>Tedarikçiden gelen ya da müşteriye giden taşıma.</td></tr>
+    <tr><td>Bilgi akışı</td><td>Elle / kâğıtla iletilen sipariş, plan, çizelge.</td></tr>
+    <tr><td>Elektronik bilgi akışı</td><td>Sistemle (ERP, e-posta) iletilen bilgi.</td></tr>
+    <tr><td>Genel ok</td><td>VSM dışı akış diyagramları için.</td></tr>
+  </tbody>
+</table>
+<p>Bilgi akışı için üstte bir <em>Üretim kontrolü</em> (planlama) kutusu koyun; müşteriden planlamaya, planlamadan
+tedarikçiye ve proseslere giden okları çizin. Okların etiketine sıklığı yazın (ör. “Haftalık sipariş”).</p>
+
+<h3>3.6 Zaman çizgisi</h3>
+<p class="app">Harita verilerinde “Tuvalin altında zaman çizgisini göster” işaretli olsun.</p>
+<p>Zaman çizgisi bir merdivendir: <strong>üst basamaklar</strong> stoklardaki bekleme günleri, <strong>alt
+basamaklar</strong> proseslerin çevrim süreleridir. Sıra, malzeme okları izlenerek kendiliğinden bulunur;
+geri dönüş okları (ör. yeniden işleme) sırayı bozmaz. Bilgi okları sıraya katılmaz.</p>
+
+<figure>
+  <img src="img/zaman-cizgisi.png" alt="Zaman çizgisi: üstte stok bekleme günleri, altta çevrim süreleri, sağda lead time" />
+  <figcaption>Şekil 4 – Zaman çizgisi: toplam bekleme, işlem süresi ve lead time.</figcaption>
+</figure>
+
+<!-- 4 -->
+<h2 id="analiz">4. Haritayı okumak: göstergeler</h2>
+<p>Hiçbir şey seçili değilken sağ paneldeki <strong>VSM özeti</strong> tüm göstergeleri hesaplar. Aşağıdaki
+sayılar örnek sürecin <em>mevcut durumuna</em> aittir.</p>
+
+<figure class="narrow">
+  <img src="img/ozet.png" alt="VSM özeti: takt, işlem süresi, bekleme, lead time, değer katma oranı ve diğer göstergeler" />
+  <figcaption>Şekil 5 – VSM özeti (mevcut durum).</figcaption>
+</figure>
+
+<div class="table-wrap"><table>
+  <thead><tr><th>Gösterge</th><th>Nasıl hesaplanır?</th><th>Örnek</th><th>Nasıl yorumlanır?</th></tr></thead>
+  <tbody>
+    <tr><td>Takt süresi</td><td>Net süre ÷ talep</td><td>60 sn</td><td>Hattın ritmi. Hiçbir prosesin C/T'si bunu aşmamalı.</td></tr>
+    <tr><td>Toplam işlem süresi</td><td>Σ C/T</td><td>2,83 dk</td><td>Bir parçanın gerçekten işlendiği süre.</td></tr>
+    <tr><td>Stokta bekleme</td><td>Σ stok günleri</td><td>4,41 gün</td><td>Ürünün sırada beklediği süre; genellikle lead time'ın neredeyse tamamı.</td></tr>
+    <tr><td>Üretim lead time</td><td>Bekleme + işlem süresi</td><td>4,42 gün</td><td>Bir parçanın hatta girişten çıkışa kadar geçen süre.</td></tr>
+    <tr><td>Değer katma oranı</td><td>İşlem süresi ÷ lead time</td><td>%0,14</td><td>Klasik VSM'de %1'in altı sık görülür; asıl hedef bekleme günlerini azaltmaktır.</td></tr>
+    <tr><td>Darboğaz</td><td>En büyük C/T</td><td>Montaj · 90 sn</td><td>Hattın çıktısını sınırlayan proses.</td></tr>
+    <tr><td>Gereken operatör (teorik)</td><td>⌈Σ C/T ÷ takt⌉</td><td>3 kişi (şu an 4)</td><td>İş içeriği tam dengelenseydi gereken kişi.</td></tr>
+    <tr><td>Pitch</td><td>Takt × paket adedi</td><td>20 dk</td><td>Bir paketlik işin süresi; iş verme aralığı.</td></tr>
+    <tr><td>Zincir verimi (RTY)</td><td>Π(1 − hurda)</td><td>%96</td><td>İlk seferde sağlam çıkan oran. Talebi karşılamak için giriş: 460 ÷ 0,96 ≈ 480 adet/gün.</td></tr>
+    <tr><td>Stok değeri</td><td>Σ adet × birim değer</td><td>41.450 TL</td><td>Hatta bağlı duran para.</td></tr>
+    <tr><td>Parti beklemesi</td><td>Σ (parti − 1) × C/T</td><td>3,29 saat</td><td>Bir parçanın partinin geri kalanını beklemesi. Klasik yöntemde lead time'a eklenmez; isterseniz eklenebilir.</td></tr>
+  </tbody>
+</table></div>
+
+<h3>4.1 Takt – çevrim süresi grafiği</h3>
+<p>Her proses bir çubuktur; dikey çizgi takt süresidir. Çizgiyi aşan proses <strong>takt üstüdür</strong>
+(kırmızı): talebi karşılayamaz. Örnekte Montaj 90 sn > 60 sn. Çubuğun taralı uzantısı <strong>etkin
+C/T</strong>'dir: duruşlar ve hurda hesaba katılınca bir sağlam parçanın gerçekte aldığı süre.</p>
+<p><span class="formula">Etkin C/T = C/T ÷ kullanılabilirlik ÷ (1 − hurda)</span> — Kesim: 50 ÷ 0,85 ÷ 0,97
+≈ <span class="calc">60,6 sn</span>. C/T taktın altında olsa da etkin C/T taktı aştığı için Kesim
+turuncu uyarı alır.</p>
+
+<figure>
+  <img src="img/takt-grafigi.png" alt="Takt – çevrim süresi grafiği: Kesim, Montaj ve Paketleme çubukları ile 60 sn takt çizgisi" />
+  <figcaption>Şekil 6 – Takt – C/T grafiği. Montaj takt üstü, Kesim duruş ve hurda nedeniyle sınırda.</figcaption>
+</figure>
+
+<h3>4.2 OEE</h3>
+<p>OEE (toplam ekipman etkinliği) üç kaybı birlikte gösterir:</p>
+<p><span class="formula">OEE = Kullanılabilirlik × Performans × Kalite</span></p>
+<ul>
+  <li><strong>Kullanılabilirlik (A):</strong> uptime girildiyse o; değilse (net süre − plansız duruş − değişim sayısı × C/O) ÷ net süre.</li>
+  <li><strong>Performans (P):</strong> ideal C/T ÷ C/T (en fazla %100).</li>
+  <li><strong>Kalite (Q):</strong> 1 − hurda.</li>
+</ul>
+<p>Örnek: Kesim %85 × %90 × %97 = <span class="calc">%74,2</span> (%85 hedefinin altında). Paketlemede uptime
+girilmedi; 10 dk duruş ve 2 × 5 dk değişimden A = (460 − 20) ÷ 460 ≈ %95,7 hesaplanır, OEE ≈ %89,3.</p>
+<p>Panelde ayrıca <strong>günlük kapasite</strong> (net süre × A × Q ÷ C/T) ve <strong>talep yükü</strong>
+görünür. Kesim'in kapasitesi ≈ 455 adet/gün, talep 460: yük %101 — kapasite yetmiyor.</p>
+
+<h3>4.3 EPEI (her parça her …)</h3>
+<p>EPEI, bir prosesin tüm çeşitleri bir kez üretme döngüsüdür. Uygulama, mevcut setup süresiyle
+<strong>en kısa olası EPEI</strong>'yi hesaplar:</p>
+<p><span class="formula">EPEI = (çeşit sayısı × C/O) ÷ (kullanılabilir süre − üretim süresi)</span></p>
+<figure class="narrow">
+  <img src="img/epei.png" alt="Kesim prosesinin EPEI kutusu: en kısa olası EPEI 1,39 gün" />
+  <figcaption>Şekil 6b – Proses panelindeki EPEI hesabı (Kesim).</figcaption>
+</figure>
+<p>Kullanılabilir süre = net süre − plansız duruş; üretim süresi = talep × C/T ÷ (1 − hurda). Kesim: 3 çeşit
+× 30 dk = 90 dk değişim gerekiyor; günde ≈ 64,8 dk boş kalıyor → <span class="calc">1,39 gün</span>.
+Girilen EPEI (2 gün) bununla uyumlu. Girilen değer hesaplanandan kısa olsaydı “bu sıklıkta değişime zaman
+yetmez” uyarısı çıkardı. Çözüm: setup süresini kısaltmak (SMED) ya da EPEI'yi uzatmak.</p>
+
+<div class="box">
+  <p><strong>Kısa yorum (örnek):</strong> Ürün hatta 4,42 gün kalıyor ama yalnızca 2,83 dakika işleniyor.
+  Bekleme en çok hammaddede (2 gün) ve Montaj sonrası stokta (1,5 gün). Montaj takt üstü; Kesim duruş ve
+  hurda yüzünden sınırda. İyileştirme önce Montaj'ın çevrim süresine ve stok seviyelerine odaklanmalı.</p>
+</div>
+
+<!-- 5 -->
+<h2 id="gelecek">5. Gelecek durum haritası</h2>
+<p>Gelecek durum haritası, hedeflenen akışı gösterir (genellikle 3–12 ay içinde ulaşılabilir).</p>
+<p class="app">Üst çubukta “+ Gelecek durum”a basın: mevcut harita kopyalanır; ikisi ayrı ayrı düzenlenir.
+Sekmelerle geçiş yapın.</p>
+
+<h3>5.1 Gelecek durum için sekiz soru</h3>
+<p>Klasik yaklaşımda gelecek durum şu sorulara sırayla cevap verilerek tasarlanır. Her sorunun yanında
+uygulamada ne yapılacağı yazılıdır.</p>
+<ol>
+  <li><strong>Takt süresi nedir?</strong> Harita verilerindeki talep ve net süre. <span class="muted">(Örnek: 60 sn.)</span></li>
+  <li><strong>Mamul, sevkiyattan önce süpermarkette mi tutulacak, doğrudan sevkiyata mı gidecek?</strong> Mamul stoğu için üçgen ya da süpermarket simgesi.</li>
+  <li><strong>Nerede sürekli akış (tek parça akışı) kurulabilir?</strong> Birleşen prosesleri tek kutu yapın; aradaki stokları kaldırın.</li>
+  <li><strong>Sürekli akışın mümkün olmadığı yerde süpermarket ve çekme nerede kullanılacak?</strong> Süpermarket simgesi + çekme oku; süpermarket boyutunu stok panelinden hesaplatın (5.2).</li>
+  <li><strong>Üretim çizelgesi tek bir noktaya, hız belirleyici prosese verilecek. Hangisi?</strong> Proses panelinde “⏱ Hız belirleyici proses”i işaretleyin (5.3).</li>
+  <li><strong>Hız belirleyicide ürün karışımı nasıl dengelenecek?</strong> <em>Yükleme dengeleme</em> (heijunka) simgesi; birden çok aile varsa aile tablosu.</li>
+  <li><strong>Hız belirleyiciye hangi iş paketiyle iş verilecek?</strong> Pitch (takt × paket adedi). <span class="muted">(Örnek: 20 dk.)</span></li>
+  <li><strong>Bu akış için hangi iyileştirmeler gerekli?</strong> Kaizen patlamaları (bölüm 6).</li>
+</ol>
+
+<h3>5.2 Süpermarket boyutu ve kanban</h3>
+<p class="app">Süpermarket simgesini seçin; stok panelinde yenileme süresi ve güvenlik payını girin.</p>
+<p><span class="formula">Gereken stok = günlük talep × yenileme süresi × (1 + güvenlik payı)</span><br />
+<span class="formula">Kanban kartı = ⌈gereken stok ÷ paket adedi⌉</span></p>
+<p>Örnek gelecek durumda Kesim sonrası süpermarket: 460 × 0,5 gün × 1,10 = <span class="calc">253 adet</span>
+→ 253 ÷ 20 = <span class="calc">13 kart</span>.</p>
+
+<h3>5.3 Hız belirleyici (pacemaker)</h3>
+<p>Hız belirleyici, üretim çizelgesinin verildiği tek prosestir; genellikle müşteriye en yakın, sürekli akışın
+başladığı yerdir. Seçilmediyse özet, akıştaki son prosesi önerir. Tuvalde <strong>⏱ Hız belirleyici</strong>
+rozeti çıkar.</p>
+<p>Kural: hız belirleyiciden sonraki akış sürekli ya da FIFO olmalıdır. Uygulama şunlarda uyarır:</p>
+<ul>
+  <li>hız belirleyiciden sonra itme stoğu (üçgen) ya da süpermarket,</li>
+  <li>hız belirleyiciden sonra itme oku,</li>
+  <li>hız belirleyicinin takt üstü olması.</li>
+</ul>
+<p>Son prosesten sonraki mamul stoğu uyarı almaz. Örnek gelecek durumda hız belirleyici Paketleme'dir ve uyarı yoktur.</p>
+
+<figure>
+  <img src="img/gelecek-durum.png" alt="Gelecek durum haritası: süpermarket, FIFO şeridi, çekme oku ve hız belirleyici rozeti" />
+  <figcaption>Şekil 7 – Örnek gelecek durum: Kesim sonrası süpermarket ve çekme, Montaj sonrası FIFO, hız belirleyici Paketleme.</figcaption>
+</figure>
+
+<!-- 6 -->
+<h2 id="kaizen">6. Kaizen planı ve karşılaştırma</h2>
+<h3>6.1 Kaizen patlamaları</h3>
+<p class="app">Paletten <em>Kaizen patlaması</em> ekleyin; panelde başlık, sorumlu, hedef tarih ve durum (açık / devam ediyor / tamamlandı) girin.</p>
+<p>Özetteki <strong>Kaizen eylemleri</strong> listesi tüm patlamaları toplar; tarihi geçmiş ve tamamlanmamış
+olanlar ⚠ ile işaretlenir. Örnekte: “Montaj çevrimini düşür” — Üretim mühendisliği, 15.12.2026.</p>
+
+<h3>6.2 Mevcut ↔ gelecek karşılaştırması</h3>
+<p>Gelecek durum varken özetin altındaki tablo iki haritayı yan yana gösterir. Yeşil iyileşme, kırmızı
+kötüleşmedir.</p>
+<table>
+  <thead><tr><th>Gösterge</th><th>Mevcut</th><th>Gelecek</th></tr></thead>
+  <tbody>
+    <tr><td>Üretim lead time</td><td>4,42 gün</td><td>1,71 gün</td></tr>
+    <tr><td>Stok değeri</td><td>41.450 TL</td><td>14.975 TL</td></tr>
+    <tr><td>İşlem süresi (Σ C/T)</td><td>2,83 dk</td><td>2,25 dk</td></tr>
+    <tr><td>Darboğaz C/T</td><td>90 sn</td><td>55 sn</td></tr>
+    <tr><td>Zincir verimi (RTY)</td><td>%96</td><td>%98</td></tr>
+  </tbody>
+</table>
+<figure class="narrow">
+  <img src="img/karsilastirma.png" alt="Mevcut ve gelecek durum karşılaştırma tablosu" />
+  <figcaption>Şekil 8 – Karşılaştırma tablosu.</figcaption>
+</figure>
+
+<!-- 7 -->
+<h2 id="karma">7. Birden fazla ürün ailesi (karma model)</h2>
+<p>Farklı ürünler aynı prosesleri paylaşıyorsa ayrı haritalar yerine tek haritada <strong>karma model</strong>
+kullanılabilir.</p>
+<ol>
+  <li>Harita verilerinde “+ Ürün ailesi ekle” ile aileleri tanımlayın (en fazla 8): ad, talep, paket adedi, birim maliyet.</li>
+  <li>Her proseste <em>Ürün aileleri</em> bölümünde o prosesten geçen aileleri işaretleyin; süre farklıysa aileye özel C/T girin (boşsa ortak C/T kullanılır).</li>
+  <li>Stokları bir aileye bağlayın ya da “Tüm aileler (ortak stok)” bırakın.</li>
+</ol>
+<p>Üst çubuktaki <strong>Aile</strong> seçicisi iki görünüm sunar:</p>
+<ul>
+  <li><strong>Tüm aileler (karma):</strong> karma takt = net süre ÷ toplam talep. Proses C/T'si talebe göre ağırlıklı ortalamadır. <strong>Proses yükü</strong> = Σ(aile talebi × aile C/T) ÷ net süre; %100'ü aşan proses kapasite yetmiyor uyarısı alır.</li>
+  <li><strong>Tek aile:</strong> o ailenin talebi, taktı ve C/T'leriyle klasik özet. O aileden geçmeyen prosesler ve başka ailenin stokları soluk görünür.</li>
+</ul>
+<div class="box">
+  <p><strong>Örnek:</strong> Örneğe 100 adet/gün talepli ikinci bir aile eklenirse karma takt 27.600 ÷ 560 ≈ 49,3 sn
+  olur. Montaj'ın yükü (560 × 90) ÷ 27.600 ≈ %183'e, duruş ve hurda payıyla ≈ %188'e çıkar.</p>
+</div>
+
+<!-- 8 -->
+<h2 id="kayit">8. Kaydetme, paylaşma ve dışa aktarma</h2>
+<table>
+  <thead><tr><th>İşlem</th><th>Ne yapar?</th></tr></thead>
+  <tbody>
+    <tr><td>Yerel taslak</td><td>Otomatik. Yalnızca bu tarayıcıda durur; bulut kaydı değildir.</td></tr>
+    <tr><td>Buluta kaydet</td><td>Misafir girişle buluta kaydeder (<span class="formula">⌘/Ctrl + S</span>). <em>Projelerim</em>'den açılır. Misafir hesabı bu tarayıcıya bağlıdır; çıkış yaparsanız projelere tekrar erişemeyebilirsiniz.</td></tr>
+    <tr><td>JSON dışa / içe aktar</td><td>Haritanın tam kopyası (mevcut ve gelecek durum birlikte). Yedek ve paylaşım için en güvenli yol. İçe aktarılan dosya önce doğrulanır, onayınızla açılır.</td></tr>
+    <tr><td>CSV (Excel)</td><td>Proses verilerini tabloya aktarır ya da tablodan günceller.</td></tr>
+    <tr><td>PNG indir</td><td>Tüm çizimin resmi.</td></tr>
+    <tr><td>Yazdır / PDF</td><td>Harita ve özet tablolarının yazdırma sayfası; yazdırma penceresinden PDF olarak kaydedilebilir.</td></tr>
+  </tbody>
+</table>
+<div class="box warn">
+  <p><strong>Aynı anda tek sekme kullanın.</strong> Uygulamayı iki sekmede açarsanız sekmeler birbirinin yerel
+  kaydının üzerine yazar.</p>
+  <p><strong>Hata ekranı:</strong> Beklenmeyen bir hata olursa çiziminiz silinmez. Ekrandan sayfayı yenileyebilir
+  ya da son kaydı JSON olarak indirebilirsiniz.</p>
+</div>
+
+<!-- Ekler -->
+<h2 id="ekler">Ekler</h2>
+
+<h3 id="ek-semboller">Ek A – Sembol sözlüğü</h3>
+<div class="table-wrap"><table>
+  <thead><tr><th>Sembol</th><th>Anlamı</th></tr></thead>
+  <tbody>
+    <tr><td>Müşteri / Tedarikçi</td><td>Dış taraflar (testere dişi çatılı fabrika).</td></tr>
+    <tr><td>Proses</td><td>Malzemenin kesintisiz aktığı alan; altında veri kutusu.</td></tr>
+    <tr><td>Stok / envanter (üçgen)</td><td>Biriken stok; zaman çizgisinde bekleme.</td></tr>
+    <tr><td>Süpermarket</td><td>Kontrollü, boyutu belli stok; çekme ile yenilenir.</td></tr>
+    <tr><td>FIFO şeridi</td><td>Sırası korunan, üst sınırı olan akış; ilk giren ilk çıkar.</td></tr>
+    <tr><td>Güvenlik stoğu</td><td>Talep ya da tedarik dalgalanmasına karşı tampon.</td></tr>
+    <tr><td>Üretim kanbanı</td><td>“Bu kadar üret” sinyali.</td></tr>
+    <tr><td>Çekme kanbanı</td><td>“Bu kadar al / taşı” sinyali.</td></tr>
+    <tr><td>Sinyal kanbanı</td><td>Parti üretimini tetikleyen sinyal (stok bir seviyeye inince).</td></tr>
+    <tr><td>Kanban posta kutusu</td><td>Kanban kartlarının toplandığı yer.</td></tr>
+    <tr><td>Yükleme dengeleme (OXOX)</td><td>Heijunka: ürün karışımını ve miktarı zamana yaymak.</td></tr>
+    <tr><td>Üretim kontrolü</td><td>Planlama birimi / sistem.</td></tr>
+    <tr><td>Git gör</td><td>Plan, sahaya gidip bakılarak güncelleniyor.</td></tr>
+    <tr><td>Operatör</td><td>Çalışan kişi.</td></tr>
+    <tr><td>Kamyon sevkiyatı</td><td>Dış taşıma.</td></tr>
+    <tr><td>Kaizen patlaması</td><td>Gereken iyileştirme.</td></tr>
+  </tbody>
+</table></div>
+
+<h3 id="ek-formuller">Ek B – Formül özeti</h3>
+<div class="table-wrap"><table>
+  <thead><tr><th>Değer</th><th>Formül</th></tr></thead>
+  <tbody>
+    <tr><td>Takt</td><td>net çalışma süresi ÷ günlük talep</td></tr>
+    <tr><td>Stok günü</td><td>stok adedi ÷ günlük talep</td></tr>
+    <tr><td>Lead time</td><td>Σ stok günü + Σ C/T (net süreyle güne çevrilir) [+ isteğe bağlı parti beklemesi]</td></tr>
+    <tr><td>Değer katma oranı</td><td>Σ C/T ÷ lead time</td></tr>
+    <tr><td>Gereken operatör</td><td>⌈Σ C/T ÷ takt⌉ (karma görünümde ⌈Σ yük⌉)</td></tr>
+    <tr><td>Pitch</td><td>takt × paket adedi</td></tr>
+    <tr><td>Etkin C/T</td><td>C/T ÷ kullanılabilirlik ÷ (1 − hurda)</td></tr>
+    <tr><td>OEE</td><td>kullanılabilirlik × (ideal C/T ÷ C/T) × (1 − hurda)</td></tr>
+    <tr><td>Kullanılabilirlik (uptime yoksa)</td><td>(net süre − plansız duruş − değişim sayısı × C/O) ÷ net süre</td></tr>
+    <tr><td>Günlük kapasite</td><td>net süre × kullanılabilirlik × (1 − hurda) ÷ C/T</td></tr>
+    <tr><td>Proses yükü (karma)</td><td>Σ(aile talebi × aile C/T) ÷ net süre</td></tr>
+    <tr><td>Karma takt</td><td>net süre ÷ toplam talep</td></tr>
+    <tr><td>Parti beklemesi</td><td>(parti − 1) × C/T</td></tr>
+    <tr><td>En kısa EPEI</td><td>(çeşit × C/O) ÷ (net süre − plansız duruş − talep × C/T ÷ (1 − hurda))</td></tr>
+    <tr><td>Süpermarket</td><td>talep × yenileme × (1 + güvenlik); kart = ⌈÷ paket adedi⌉</td></tr>
+    <tr><td>Zincir verimi (RTY)</td><td>Π(1 − hurda); gereken giriş = talep ÷ RTY</td></tr>
+    <tr><td>Stok değeri</td><td>adet (ya da gün × talep) × birim değer</td></tr>
+  </tbody>
+</table></div>
+
+<h3 id="ek-form">Ek C – Saha veri formu</h3>
+<p>Her proses için bir satır doldurun. Ölçümü birkaç kez yapın; en kötü değeri “not” sütununa yazın.</p>
+<div class="table-wrap"><table class="form">
+  <thead><tr><th>Proses</th><th>C/T</th><th>C/O</th><th>Uptime / duruş</th><th>Operatör</th><th>Hurda %</th><th>Parti</th><th>Çeşit</th><th>Sonraki stok (adet)</th><th>Not</th></tr></thead>
+  <tbody>
+    <tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+    <tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+    <tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+    <tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+    <tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+    <tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+  </tbody>
+</table></div>
+<p><strong>Hat verileri:</strong> günlük talep (aile başına) ____ · net çalışma süresi ____ dk/gün · vardiya ____ ·
+sevkiyat sıklığı ____ · paket adedi ____ · birim maliyet ____</p>
+<p><strong>Bilgi akışı:</strong> sipariş nasıl ve ne sıklıkla geliyor? ____ · plan kime ve ne sıklıkla veriliyor? ____</p>
+
+<h3 id="ek-hatalar">Ek D – Sık yapılan hatalar</h3>
+<ul>
+  <li>Haritayı sahaya gitmeden, eski verilerle çizmek.</li>
+  <li>Yalnızca malzeme akışını çizip bilgi akışını unutmak.</li>
+  <li>Tek bir departmanı haritalayıp bütün akışı görmemek.</li>
+  <li>Ortalama süreyle yetinip değişkenliği not etmemek.</li>
+  <li>Boş alanı 0 sanmak: bilinmeyen değeri boş bırakın, 0 yazmayın.</li>
+  <li>Haritayı amaç sanmak: harita, iyileştirmeyi planlamak için bir araçtır; kaizen planı olmadan eksiktir.</li>
+  <li>Net çalışma süresine molaları ve planlı duruşları dahil etmek.</li>
+</ul>
+
+<h3 id="ek-kisayollar">Ek E – Kısayollar</h3>
+<table>
+  <thead><tr><th>Tuş</th><th>İşlem</th></tr></thead>
+  <tbody>
+    <tr><td><span class="formula">⌘/Ctrl + Z</span></td><td>Geri al</td></tr>
+    <tr><td><span class="formula">⌘/Ctrl + Shift + Z</span> ya da <span class="formula">⌘/Ctrl + Y</span></td><td>İleri al</td></tr>
+    <tr><td><span class="formula">⌘/Ctrl + C</span> / <span class="formula">V</span></td><td>Seçili şekilleri kopyala / yapıştır</td></tr>
+    <tr><td><span class="formula">⌘/Ctrl + D</span></td><td>Çoğalt</td></tr>
+    <tr><td><span class="formula">⌘/Ctrl + S</span></td><td>Buluta kaydet (bulut projesi açıkken)</td></tr>
+    <tr><td><span class="formula">Delete</span> / <span class="formula">Backspace</span></td><td>Seçileni sil</td></tr>
+    <tr><td>Shift + sürükle</td><td>Alan seçerek birden çok öğe seçme</td></tr>
+  </tbody>
+</table>
+
+<p class="muted" style="margin-top:32px">Akış Editörü · VSM rehberi · Örnek veriler uydurmadır.</p>
+</main>
+</body>
+</html>

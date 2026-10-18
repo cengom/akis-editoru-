@@ -400,6 +400,17 @@ dialog.modal::backdrop { background: rgba(17, 24, 39, 0.35); }
 }
 .warning-box ul { margin: 4px 0 0; padding-left: 16px; }
 .ok-box { margin: 0; padding: 6px 10px; background: #ecfdf5; border: 1px solid #a7f3d0; color: #065f46; border-radius: 6px; }
+a.button-link {
+  display: inline-block;
+  border: 1px solid var(--border);
+  background: #fff;
+  color: var(--text);
+  border-radius: 6px;
+  padding: 5px 10px;
+  text-decoration: none;
+}
+a.button-link:hover { border-color: var(--accent); }
+a.button-link:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 button.link { border: none; background: none; padding: 0; color: var(--accent); text-decoration: underline; cursor: pointer; font: inherit; }
 details.help summary, .map-panel details summary { cursor: pointer; font-weight: 600; font-size: 13px; padding: 4px 0; }
 details.help { margin-bottom: 12px; }

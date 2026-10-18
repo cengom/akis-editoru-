@@ -37,6 +37,7 @@ Diğer komutlar:
 | --- | --- |
 | `npm run dev:sahte-bulut` | Supabase olmadan bulut ekranlarını denemek için **sahte bulutlu** geliştirme sunucusu (http://localhost:5174). Veriler gerçek sunucuya gitmez; yalnızca o tarayıcıda durur. |
 | `npm run typecheck` | TypeScript tür kontrolü |
+| `npm run kilavuz` | VSM rehberinin ekran görüntülerini ve PDF'ini yeniden üretir (önce `npm run dev` açık olmalı; bilgisayardaki Google Chrome'u ayrı, geçici bir profille kullanır) |
 | `npm test` | Otomatik hesap testleri (Vitest): takt, OEE, stok günü, lead time, ürün aileleri, eski dosya geçişleri |
 | `npm run build` | Tür kontrolü + üretim derlemesi (`dist/` klasörü) |
 | `npm run preview` | Derlenmiş sürümü yerelde açar |
@@ -106,6 +107,11 @@ Uygulama tek sayfalık statik bir sitedir; sunucu kodu yoktur.
   CAPTCHA korumasını açmanız önerilir.
 
 ## Nasıl kullanılır?
+
+Adım adım **VSM rehberi** uygulamanın içindedir: üst çubukta **"? Kılavuz"** (ya da
+`/kilavuz/index.html`). Rehber hazırlıktan gelecek durum ve kaizen planına kadar VSM'yi uygulamanın örnek
+süreciyle anlatır; sayfadan **PDF olarak indirilebilir** (`public/kilavuz/akis-editoru-vsm-rehberi.pdf`).
+Aşağıda kısa bir özet var.
 
 - **Şekil eklemek:** Soldaki paletten bir şekli tuvale sürükleyip bırakın ya da şekle tıklayın.
   Şekiller: Başlangıç/Bitiş, Proses, Karar, Departman, Not.
