@@ -105,30 +105,56 @@ Uygulama tek sayfalık statik bir sitedir; sunucu kodu yoktur.
 - **Düzenlemek:** Bir şekle tıklayın; sağ panelden başlık, açıklama ve renk değiştirin.
 - **VSM verileri (yalnızca Proses):** Bir proses seçince sağ panelde "VSM verileri" bölümü açılır:
   çevrim süresi (C/T), setup/değişim, uptime (%), operatör sayısı ve "Gelişmiş alanlar" altında mesafe
-  (m) ve not. Süreler sn/dk/saat olarak seçilebilir.
+  (m), EPEI, hurda (%), parti büyüklüğü ve not. Süreler sn/dk/saat olarak seçilebilir. Uptime ya da hurda
+  girilirse **etkin C/T** (= C/T ÷ uptime ÷ (1 − hurda)) hesaplanır; etkin C/T taktı aşarsa turuncu
+  kapasite uyarısı çıkar.
   Ondalık için virgül ya da nokta yazabilirsiniz. Boş bırakılan alan "veri yok" demektir; 0 ise gerçek
   bir değerdir. Girilen değerler prosesin altındaki veri kutusunda görünür; kutu prosesle birlikte
   taşınır ve "Veri kutusunu tuvalde göster" ile gizlenebilir.
   Bir oka tıklayıp etiket yazın (ör. "Evet", "Hayır").
 - **VSM genel verileri ve özet:** Boş bir yere tıklayın (ya da üstteki "VSM verileri / özet" düğmesine
   basın). Sağ panelde müşteri talebi (adet/gün), net çalışma süresi (dk/gün veya sn/gün; günlük toplam),
-  vardiya sayısı, sevkiyat sıklığı ve isteğe bağlı pitch girilir. Altındaki **VSM özeti** otomatik
+  vardiya sayısı, sevkiyat sıklığı ve isteğe bağlı paket adedi girilir (pitch = takt × paket adedi). Altındaki **VSM özeti** otomatik
   hesaplanır (klasik VSM yöntemi): takt süresi (net süre ÷ talep), toplam işlem süresi (proseslerin
   çevrim sürelerinin toplamı), stokta bekleme (stok üçgenlerinin gün toplamı), üretim lead time
-  (bekleme + işlem süresi), değer katma oranı (işlem süresi ÷ lead time) ve toplam mesafe. Çevrim süresi takt'tan büyük prosesler kırmızı "Takt üstü" ile işaretlenir.
+  (bekleme + işlem süresi), değer katma oranı (işlem süresi ÷ lead time), toplam mesafe, darboğaz
+  (en büyük C/T), teorik gereken operatör (⌈∑C/T ÷ takt⌉) ve pitch. **Takt – çevrim süresi grafiği**
+  her prosesi takt çizgisine göre gösterir. Çevrim süresi takt'tan büyük prosesler kırmızı "Takt üstü"
+  ile işaretlenir; "Prosesleri takta göre renklendir" seçilirse prosesler yeşil/sarı/kırmızı boyanır.
   **Hesaplanan değerler mavi italik ve ∑ işaretlidir**; elle girilen değerler normal yazılır.
 - **VSM sembolleri:** Paletteki "VSM" grubunda Müşteri, Tedarikçi (fabrika simgesi), Stok / envanter
-  (üçgen) ve Kaizen patlaması var. Müşteri simgesi harita talebini ve hesaplanan takt'ı gösterir.
+  (üçgen), Kaizen patlaması, Üretim kontrolü, Operatör ve Kamyon sevkiyatı var. Müşteri simgesi harita
+  talebini ve hesaplanan takt'ı gösterir. "Çekme ve planlama" grubunda Süpermarket, FIFO şeridi,
+  Güvenlik stoğu, Üretim/Çekme/Sinyal kanbanı, Kanban kutusu, Yükleme dengeleme (heijunka) ve Git gör var.
+- **Kaizen eylemleri:** Kaizen patlamasına sorumlu, hedef tarih ve durum (açık / devam ediyor /
+  tamamlandı) girilir. Harita panelindeki "Kaizen eylemleri" listesi tümünü gösterir; tarihi geçmiş açık
+  eylemler "⚠ gecikti" ile işaretlenir.
 - **Stok (üçgen):** Stok üçgenini seçip sağ panelden stok miktarını **adet** ya da doğrudan **gün**
   olarak girin. Adet girilirse bekleme günü = adet ÷ günlük müşteri talebi olarak hesaplanır ve
   üçgenin altında görünür. Stok, prosesin içine değil prosesler arasına üçgen olarak çizilir.
+  Süpermarket, FIFO şeridi ve güvenlik stoğu da aynı şekilde stok taşır. **Süpermarkette** yenileme
+  süresi ve güvenlik payı girilirse gereken stok (= günlük talep × yenileme × (1 + güvenlik)) ve kanban
+  kartı sayısı (= ⌈gereken ÷ paket adedi⌉) hesaplanır.
 - **Ok türleri:** Paletteki "Yeni ok türü" ile sıradaki okların türünü seçin: Genel ok, Bilgi akışı (mavi
-  kesikli), Malzeme akışı / itme (kalın çizgili), Sevkiyat (kalın boş). Var olan bir okun türü, ok
+  kesikli), Elektronik bilgi akışı (zikzaklı), Malzeme akışı / itme (kalın çizgili), Çekme (kavisli),
+  Sevkiyat (kalın boş). Var olan bir okun türü, ok
   seçilince sağ panelden değiştirilebilir.
-- **Zaman çizgisi:** "Tuvalin altında zaman çizgisini göster" ile açılır. Stok üçgenleri ve prosesler
-  tuvaldeki soldan sağa sırasıyla dizilir (merdiven): **üst basamak stokta bekleme (gün)**, **alt
+- **Zaman çizgisi:** "Tuvalin altında zaman çizgisini göster" ile açılır. Stoklar ve prosesler **akış
+  oklarına göre** sıralanır (bilgi okları ve geri dönüş döngüleri sırayı etkilemez; oku olmayan şekiller
+  yatay konumlarına göre araya girer) ve merdiven olarak gösterilir: **üst basamak stokta bekleme (gün)**, **alt
   basamak prosesin çevrim süresi (C/T)**. Sağda toplam bekleme, toplam işlem süresi, lead time ve değer
   katma oranı hesaplanır. Ada tıklamak o şekli seçer.
+- **Mevcut durum / gelecek durum:** Üstteki "Harita" sekmeleriyle aynı projede iki harita tutulur.
+  "+ Gelecek durum" mevcut haritanın kopyasıyla (ya da boş) bir hedef harita açar. İki harita varsa
+  harita panelinde **karşılaştırma tablosu** (lead time, bekleme, işlem süresi, değer katma oranı,
+  darboğaz…) görünür. "Temizle" yalnızca açık haritayı siler; "Kaldır" gelecek durumu siler.
+- **Geri al / ileri al:** ⌘/Ctrl+Z ve ⇧+⌘/Ctrl+Z (ya da Ctrl+Y) veya "Düzen" düğmeleri. **Kopyala /
+  yapıştır / çoğalt:** ⌘/Ctrl+C, ⌘/Ctrl+V, ⌘/Ctrl+D (seçili şekiller ve aralarındaki oklar).
+- **PNG indir / Yazdır / PDF:** Tüm çizimi PNG görsel olarak indirir ya da görsel, VSM özeti ve zaman
+  çizgisiyle bir yazdırma sayfası açar (tarayıcının yazdırma penceresinden "PDF olarak kaydet").
+- **Excel / CSV:** Harita panelinden prosesların VSM verilerini CSV olarak dışa aktarıp Excel'de
+  düzenleyebilir ve geri içe aktarabilirsiniz (proses adlarıyla eşleşir; noktalı virgül ya da virgül
+  ayraçlı; hatalı dosya hiçbir şeyi değiştirmez; işlem geri alınabilir).
 - **Silmek:** Seçip `Delete`/`Backspace` tuşuna basın ya da "Seçileni sil" düğmesini kullanın.
 - **Gezinmek:** Boş alanı sürükleyerek kaydırın, fare tekerleğiyle yakınlaştırın; "Sığdır" tüm çizimi ekrana sığdırır.
 - **Kaydetmek (yerel taslak):** Çizim otomatik olarak **yalnızca bu tarayıcıya** kaydedilir.
@@ -154,7 +180,7 @@ JSON dosyası ve tarayıcı kaydı aynı biçimdedir (`src/model/types.ts`):
 ```json
 {
   "app": "akis-editoru",
-  "schemaVersion": 4,
+  "schemaVersion": 6,
   "name": "Diyagram adı",
   "savedAt": "2026-10-15T20:00:00.000Z",
   "viewport": { "x": 0, "y": 0, "zoom": 1 },
@@ -195,6 +221,11 @@ JSON dosyası ve tarayıcı kaydı aynı biçimdedir (`src/model/types.ts`):
 Şekil türleri (`kind`): `terminal`, `process`, `decision`, `department`, `note`, `customer`, `supplier`,
 `inventory`, `kaizen`. Bağlantı türleri (`kind`): `flow`, `info`, `material`, `shipment`.
 
+**Sürüm 5–6 değişiklikleri:** Proseste EPEI, hurda ve parti büyüklüğü; haritada elle girilen pitch
+yerine paket adedi (pitch hesaplanır); yeni sembol türleri; stok şekillerinde süpermarket boyut alanları
+(`replenishTime`, `safetyRate`); kaizen verisi (`data.kaizen`); gelecek durum haritası (`futureState`,
+üst düzey alanlarla aynı yapıda) ve açık harita (`activeState`); harita verisinde `colorByTakt`.
+
 **Sürüm 4 değişikliği:** Klasik VSM yöntemine geçildi. Proseslerdeki "WIP / stok", "değer katan süre"
 ve "değer katmayan süre" alanları kaldırıldı. İşlem süresi artık çevrim süresidir; bekleme stok
 üçgenlerinden gelir. Eski dosyalarda bu alanlara girilmiş değerler açılışta kullanılmaz; uygulama bunu
@@ -218,17 +249,16 @@ var olan şekillere gitmesi, boyut sınırları). Hatalı dosya yüklenirse hata
 - Yerel taslak yalnızca bu tarayıcının yerel deposundadır; tarayıcı verileri temizlenirse kaybolur.
 - **Aynı anda birden fazla sekme** açarsanız sekmeler birbirinin kaydının üzerine yazar
   (uygulama bunu fark edince uyarı gösterir). Tek sekmede çalışın.
-- Geri al / ileri al, kopyala / yapıştır yok.
 - Ok güzergâhları otomatiktir; elle büküm noktası eklenemez.
 - Departman şekli yalnızca görsel bir alandır; içindeki kutular onunla birlikte taşınmaz (gruplama yok).
-- Görsel (PNG/SVG/PDF) çıktı ve yazdırma yok.
+- PNG çıktısı tüm çizimi kapsar; zaman çizgisi şeridi görsele girmez (yazdırma sayfasında tablo olarak
+  yer alır). Yazdırma penceresi tarayıcının kendi penceresidir.
+- Birden fazla ürün ailesi (ayrı talep/takt) henüz desteklenmiyor; harita tek ürün ailesi içindir.
 - Lead time'a işlem süresinin eklenmesi için net çalışma süresi gerekir (saniyeleri güne çevirmek için).
   Stok günü adetten hesaplanacaksa müşteri talebi gerekir.
-- Zaman çizgisindeki sıra, şekillerin tuvaldeki yatay konumuna göredir; oklar sırayı belirlemez.
 - Net çalışma süresi günlük toplam olarak girilir; vardiya sayısı yalnızca bilgi amaçlıdır, hesaba girmez.
 - Zaman çizgisi tuvalin altına sabitlenmiş bir şerittir; çizimle birlikte yakınlaşmaz ve çizimin alt
   kısmını örtebilir (kapatılabilir). "Sığdır" onu hesaba katmaz.
-- Elektronik bilgi akışı (zikzak ok), kanban, süpermarket, FIFO gibi diğer VSM sembolleri henüz yok.
 - Veri kutusu prosesin altına taşar: alt kenardan çıkan oklar kutunun arkasından geçer (yan kenarları
   kullanın) ve "Sığdır" veri kutusunu hesaba katmaz.
 - Masaüstü kullanımı için tasarlandı; dokunmatik/mobil kullanım denenmedi.

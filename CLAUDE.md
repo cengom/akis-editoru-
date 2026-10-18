@@ -30,6 +30,12 @@ yalnızca biri olacak; uygulama bir VSM hesaplayıcısına dönüştürülmemeli
 - `src/components/MapPanel.tsx` (harita verileri + özet), `Timeline.tsx` (alt zaman çizgisi),
   `QuantityFields.tsx` (sayı + birim satırları; proses ve harita alanları ortak kullanır),
   `VsmCanvasContext.ts` (takt ve talebi şekillere iletir; sürüklemede değişmez).
+- `src/nodes/VsmSymbols.tsx` — simge olarak çizilen VSM şekilleri (süpermarket, FIFO, kanbanlar, heijunka,
+  git gör, operatör, kamyon, güvenlik stoğu); palet de aynı çizimleri kullanır.
+- `src/editor/` — `useHistory` (geri al/ileri al; `historyKey` değişince sıfırlanır), `useClipboard`,
+  `exportImage` (PNG ve yazdırma sayfası; `html-to-image`).
+- `src/model/csv.ts` — proses verileri CSV (Excel, `;` ayraç, virgüllü ondalık) dışa/içe aktarma.
+- `src/components/TaktChart.tsx`, `StateCompare.tsx`, `KaizenList.tsx` — özet panel parçaları.
 - `src/model/shapes.ts` — şekil kataloğu (ad, boyut, renk) ve renk yardımcıları.
 - `src/model/example.ts` — uydurma örnek üretim süreci (gerçek veri yok).
 - `src/nodes/ShapeNodeView.tsx` — tüm şekiller için tek düğüm bileşeni; şeklin türü `node.type` alanında.
@@ -48,9 +54,14 @@ yalnızca biri olacak; uygulama bir VSM hesaplayıcısına dönüştürülmemeli
 - Bağlantılar `ConnectionMode.Loose` ile çalışır; her şeklin dört kenarında `top/right/bottom/left`
   kimlikli bağlantı noktası vardır. Kenar kimlikleri kayıtta saklanır.
 - Katman sırası: departman alanı (zIndex 0) < oklar (1) < diğer şekiller (2). Seçili ok öne çıkar.
-- JSON dosyası, yerel kayıt ve buluttaki `document_json` **aynı** formatı kullanır. Güncel sürüm 4;
-  sürüm 1–3 de okunur (kaldırılan alanlar yok sayılır, kullanıcıya `warnings` ile bildirilir).
-- Stok verisi `data.inventory` (yalnızca `inventory` şekillerinde). Buluttan gelen belge de `parseDocument` ile doğrulanır.
+- JSON dosyası, yerel kayıt ve buluttaki `document_json` **aynı** formatı kullanır. Güncel sürüm 6;
+  sürüm 1–5 de okunur (kaldırılan alanlar yok sayılır, kullanıcıya `warnings` ile bildirilir).
+- Stok verisi `data.inventory`; stok tutan şekiller `STOCK_KINDS` (stok üçgeni, süpermarket, FIFO,
+  güvenlik stoğu) ve hepsi zaman çizgisinde bekleme sayılır. Kaizen verisi `data.kaizen`.
+- Mevcut / gelecek durum: üst düzey alanlar her zaman **mevcut durumdur**; gelecek durum `futureState`.
+  Editörde yalnızca açık harita React Flow durumundadır, diğeri App'te `otherState` olarak tutulur
+  (`splitStates`, `toDocument(..., active, other)`). Bulutun "kaydedilmemiş" imzası iki haritayı da kapsar.
+- Zaman çizgisi sırası akış oklarından gelir (`flowOrder`: bilgi okları hariç, geri dönüşler kırılır). Buluttan gelen belge de `parseDocument` ile doğrulanır.
 - İki kayıt modu: **yerel taslak** (`STORAGE_KEY`, otomatik) ve **bulut proje** (manuel "Kaydet").
   Bulut projesi açıkken yerel taslağa yazılmaz; kaydedilmemiş değişiklikler `CLOUD_BACKUP_KEY` yedeğine
   yazılır ve sayfa yenilenince o projeyle devam edilir. Çıkışta yedek silinir.

@@ -69,6 +69,18 @@
 - [x] Zaman çizgisi akış oklarına göre sıralanıyor (geri dönüş okları yok sayılıyor)
 - [x] Kayıt formatı sürüm 5
 
+## Tamamlananlar (7. aşama: VSM 2. ve 3. grup)
+
+- [x] Çekme ve planlama sembolleri: süpermarket, FIFO, güvenlik stoğu, üretim/çekme/sinyal kanbanı, kanban kutusu,
+      heijunka, git gör; ayrıca üretim kontrolü, operatör, kamyon
+- [x] Elektronik bilgi akışı (zikzak) ve çekme (kavisli) okları
+- [x] Süpermarket boyutu (gereken stok, kanban kartı sayısı)
+- [x] Kaizen eylem listesi (sorumlu, hedef tarih, durum, gecikme)
+- [x] Mevcut / gelecek durum haritaları ve karşılaştırma tablosu (kayıt formatı sürüm 6)
+- [x] Geri al / ileri al, kopyala / yapıştır / çoğalt
+- [x] PNG indirme, yazdırma / PDF sayfası
+- [x] Proses verileri için CSV (Excel) dışa/içe aktarma; takta göre renklendirme
+
 ## Bekleyen (kullanıcı tarafı)
 
 - [x] Supabase projesi oluşturma, SQL'i çalıştırma, anonim girişi açma, `.env.local` doldurma (README)
@@ -87,17 +99,12 @@
 - [ ] Artık kullanılmayan özel `cengom/akis-editoru` (tiresiz) deposunu arşivleme/silme kararı (kullanıcı)
 - [ ] İsteğe bağlı: bulut projesinde otomatik kaydetme seçeneği
 
-- [ ] Diğer VSM sembolleri: elektronik bilgi akışı (zikzak), kanban, süpermarket, FIFO şeridi, operatör, kamyon
+- [ ] Birden fazla ürün ailesi (aile başına talep, takt ve zaman çizgisi)
 - [ ] Zaman çizgisini tuval koordinatlarında (çizimle birlikte yakınlaşan) seçenek olarak sunmak
 - [ ] Vardiya başına net süre girişi (günlük toplamı otomatik hesaplama)
 - [ ] Veri kutusunu düğüm boyutuna dahil etme ya da alt bağlantı noktasını kutunun altına taşıma seçeneği
-- [ ] VSM sembol kütüphanesi (tedarikçi/müşteri, stok üçgeni, itme/çekme okları, kanban, bilgi akışı, sevkiyat vb.) — tasarım için `referans-vsm.jpg`'ye bakılacak
 - [ ] Gruplama ve kulvarlar (departman içindeki kutuların birlikte taşınması, yatay/dikey kulvarlar)
-- [ ] Kopyala / yapıştır
-- [ ] Geri al / ileri al
 - [ ] Bağlantı güzergâhlarını elle düzenleme (büküm noktaları)
-- [ ] Zaman ve mesafe çizgileri (VSM alt zaman çizelgesi)
-- [ ] Görsel çıktı (PNG/SVG/PDF) ve yazdırma
 - [ ] Bulut kaydı ve çok kullanıcılı çalışma (hesap/backend gerektirir; ücretsiz kalma hedefiyle ayrıca planlanmalı)
 
 ## Notlar
