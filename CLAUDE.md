@@ -8,7 +8,9 @@ yalnızca biri olacak; uygulama bir VSM hesaplayıcısına dönüştürülmemeli
 - Arayüz dili: **Türkçe**. Kullanıcıya yapılan açıklamalar sade Türkçe olmalı (kullanıcı başlangıç seviyesinde).
 - Ücretli bileşen, ücretli API veya AI API **yok**. Kendi sunucu kodumuz yok; bulut kaydı ve giriş
   **Supabase** (ücretsiz katman) ile yapılır. Supabase ayarlanmamışsa uygulama yalnızca yerel taslakla çalışır.
-- Vercel / Cloudflare Pages gibi statik barındırmaya uygun tek sayfalık uygulama. Henüz yayımlanmadı.
+- Yayında: https://akis-editoru.vercel.app (Vercel projesi `cengoo/akis-editoru`, `cengom/akis-editoru-`
+  deposunun `main` dalına bağlı). **`main`'e her push otomatik olarak canlıya çıkar**; bu yüzden push
+  yalnızca kullanıcının açık onayıyla ve derleme (`npm run build`) geçtikten sonra yapılır.
 
 ## Mimari
 - **React 19 + TypeScript 7 + Vite 8**, diyagram için **React Flow (`@xyflow/react` 12)**.
