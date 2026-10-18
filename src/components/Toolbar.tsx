@@ -31,6 +31,8 @@ interface Props {
   onZoomOut: () => void;
   onFit: () => void;
   onShowMap: () => void;
+  onExportPng: () => void;
+  onPrint: () => void;
   // Düzen
   onUndo: () => void;
   onRedo: () => void;
@@ -251,6 +253,12 @@ export function Toolbar(props: Props) {
           </button>
           <button type="button" onClick={props.onExport}>
             JSON dışa aktar
+          </button>
+          <button type="button" onClick={props.onExportPng} title="Tüm çizimi PNG görsel olarak indir">
+            PNG indir
+          </button>
+          <button type="button" onClick={props.onPrint} title="Yazdır ya da yazdırma penceresinden PDF olarak kaydet">
+            Yazdır / PDF
           </button>
           <input ref={fileInput} type="file" accept=".json,application/json" hidden onChange={onFile} data-testid="ice-aktar-dosya" />
         </div>

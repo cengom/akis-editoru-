@@ -56,6 +56,7 @@ import { computeSummary } from './model/vsmCalc';
 import { edgeTypes } from './edges/FlowEdgeView';
 import { isTyping, useHistory } from './editor/useHistory';
 import { useClipboard } from './editor/useClipboard';
+import { diagramToPng, downloadDataUrl, printDocument, printHtml } from './editor/exportImage';
 import { nodeTypes } from './nodes/ShapeNodeView';
 
 type Notice = CloudNotice;
@@ -481,6 +482,35 @@ function Editor() {
       },
     });
 
+  const safeFileName = () => (name.trim() || 'diyagram').replace(/[^\p{L}\p{N}_-]+/gu, '-').slice(0, 60);
+  const stateLabel = activeState === 'future' ? 'Gelecek durum' : 'Mevcut durum';
+
+  /** Seçimi kaldırıp tüm çizimin görselini üretir. */
+  const renderImage = async (): Promise<string | null> => {
+    clearSelection();
+    await new Promise((r) => window.setTimeout(r, 120));
+    try {
+      return await diagramToPng(rf.getNodes());
+    } catch (e) {
+      setNotice({ type: 'error', title: `Görsel oluşturulamadı: ${e instanceof Error ? e.message : 'bilinmeyen hata'}` });
+      return null;
+    }
+  };
+
+  const exportPng = async () => {
+    const img = await renderImage();
+    if (!img) return;
+    const file = `${safeFileName()}-${activeState === 'future' ? 'gelecek' : 'mevcut'}-${new Date().toISOString().slice(0, 10)}.png`;
+    downloadDataUrl(img, file);
+    setNotice({ type: 'success', title: `"${file}" indirildi.` });
+  };
+
+  const printDiagram = async () => {
+    const img = await renderImage();
+    if (!img) return;
+    printDocument(printHtml(name.trim() || 'Diyagram', stateLabel, img, summary));
+  };
+
   const exportJson = () => {
     const doc = getDocument();
     const blob = new Blob([JSON.stringify(doc, null, 2)], { type: 'application/json' });
@@ -543,6 +573,8 @@ function Editor() {
         onZoomOut={() => void rf.zoomOut({ duration: 200 })}
         onFit={() => void rf.fitView({ padding: 0.15, duration: 300 })}
         onShowMap={clearSelection}
+        onExportPng={() => void exportPng()}
+        onPrint={() => void printDiagram()}
         onUndo={history.undo}
         onRedo={history.redo}
         canUndo={history.canUndo}
