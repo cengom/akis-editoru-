@@ -2,7 +2,10 @@ import {
   TIME_UNITS,
   VSM_FIELD_KEYS,
   VSM_MAP_FIELD_KEYS,
+  KAIZEN_STATUSES,
   type InventoryData,
+  type KaizenData,
+  type KaizenStatus,
   type VsmData,
   type VsmFieldKey,
   type VsmMapData,
@@ -339,6 +342,28 @@ export function parseVsmMap(raw: unknown, fail: Fail): VsmMapData | null {
   const fields = parseQuantityFields(raw.fields, VSM_MAP_FIELDS, 'VSM genel verileri', fail);
   if (!fields) return null;
   result.fields = fields;
+  return result;
+}
+
+/* ---------- Kaizen ---------- */
+
+export const KAIZEN_STATUS_LABELS: Record<KaizenStatus, string> = { open: 'Açık', doing: 'Devam ediyor', done: 'Tamamlandı' };
+
+export function emptyKaizen(): KaizenData {
+  return { owner: '', dueDate: '', status: 'open' };
+}
+
+/** Kaizen verisini okur; eski dosyalarda yoktur. Hatalı alanlar varsayılana döner. */
+export function parseKaizen(raw: unknown, where: string, fail: Fail): KaizenData | null {
+  const result = emptyKaizen();
+  if (raw === undefined || raw === null) return result;
+  if (!isPlainObject(raw)) {
+    fail(`${where}: kaizen verisi geçersiz.`);
+    return null;
+  }
+  if (typeof raw.owner === 'string' && raw.owner.length <= 200) result.owner = raw.owner;
+  if (typeof raw.dueDate === 'string' && /^(\d{4}-\d{2}-\d{2})?$/.test(raw.dueDate)) result.dueDate = raw.dueDate;
+  if (KAIZEN_STATUSES.includes(raw.status as KaizenStatus)) result.status = raw.status as KaizenStatus;
   return result;
 }
 

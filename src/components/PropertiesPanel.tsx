@@ -1,8 +1,8 @@
 import { COLOR_PRESETS, SHAPES } from '../model/shapes';
 import { LIMITS } from '../model/document';
 import { EDGE_KIND_SPECS } from '../model/edges';
-import { EDGE_KINDS, isStockKind, type EdgeKind, type FlowEdge, type ShapeData, type ShapeKind, type InventoryData, type ShapeNode, type VsmData, type VsmMapData, type VsmQuantity } from '../model/types';
-import { INVENTORY_FIELDS, VSM_FIELDS, VSM_LIMITS, emptyInventory, emptyVsm, formatDays, formatDuration, formatNumber, toSeconds } from '../model/vsm';
+import { EDGE_KINDS, KAIZEN_STATUSES, isStockKind, type KaizenData, type KaizenStatus, type EdgeKind, type FlowEdge, type ShapeData, type ShapeKind, type InventoryData, type ShapeNode, type VsmData, type VsmMapData, type VsmQuantity } from '../model/types';
+import { INVENTORY_FIELDS, VSM_FIELDS, VSM_LIMITS, KAIZEN_STATUS_LABELS, emptyInventory, emptyKaizen, emptyVsm, formatDays, formatDuration, formatNumber, toSeconds } from '../model/vsm';
 import { effectiveCycleSeconds, inventoryDays, isOverTakt, supermarketSizing, type VsmSummary } from '../model/vsmCalc';
 import { MapPanel } from './MapPanel';
 import { QuantityTable } from './QuantityFields';
@@ -40,7 +40,13 @@ export function PropertiesPanel(props: Props) {
       <h2>{total === 0 ? 'Harita' : 'Özellikler'}</h2>
       {total === 0 && (
         <>
-          <MapPanel vsmMap={props.vsmMap} summary={props.summary} onChange={props.onUpdateMap} onSelectNode={props.onSelectNode} />
+          <MapPanel
+            vsmMap={props.vsmMap}
+            summary={props.summary}
+            kaizens={props.nodes.filter((n) => n.type === 'kaizen')}
+            onChange={props.onUpdateMap}
+            onSelectNode={props.onSelectNode}
+          />
           <EmptyState nodeCount={props.nodes.length} edgeCount={props.edges.length} />
         </>
       )}
@@ -163,6 +169,9 @@ function NodeEditor({
       <p className="muted small">
         Konum: x {Math.round(node.position.x)}, y {Math.round(node.position.y)}
       </p>
+      {kind === 'kaizen' && (
+        <KaizenEditor kaizen={node.data.kaizen ?? emptyKaizen()} onChange={(kaizen) => onUpdate(node.id, { kaizen })} />
+      )}
       {isStockKind(kind) && (
         <InventoryEditor
           key={node.id}
@@ -182,6 +191,46 @@ function NodeEditor({
         />
       )}
     </div>
+  );
+}
+
+/* ---------- Kaizen eylemi ---------- */
+
+function KaizenEditor({ kaizen, onChange }: { kaizen: KaizenData; onChange: (k: KaizenData) => void }) {
+  return (
+    <section className="vsm-section" aria-label="Kaizen eylemi">
+      <h3>Kaizen eylemi</h3>
+      <label>
+        Sorumlu
+        <input
+          value={kaizen.owner}
+          maxLength={200}
+          placeholder="Ad ya da ekip"
+          onChange={(e) => onChange({ ...kaizen, owner: e.target.value })}
+          data-testid="kaizen-sorumlu"
+        />
+      </label>
+      <label>
+        Hedef tarih
+        <input type="date" value={kaizen.dueDate} onChange={(e) => onChange({ ...kaizen, dueDate: e.target.value })} data-testid="kaizen-tarih" />
+      </label>
+      <label>
+        Durum
+        <select
+          className="select"
+          value={kaizen.status}
+          onChange={(e) => onChange({ ...kaizen, status: e.target.value as KaizenStatus })}
+          data-testid="kaizen-durum"
+        >
+          {KAIZEN_STATUSES.map((s) => (
+            <option key={s} value={s}>
+              {KAIZEN_STATUS_LABELS[s]}
+            </option>
+          ))}
+        </select>
+      </label>
+      <p className="muted small">Tüm kaizenler, boş alana tıklayınca sağ paneldeki "Kaizen eylemleri" listesinde görünür.</p>
+    </section>
   );
 }
 

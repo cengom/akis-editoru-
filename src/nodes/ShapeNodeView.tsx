@@ -2,10 +2,11 @@ import { memo, useContext, type CSSProperties } from 'react';
 import { Handle, NodeResizer, Position, type NodeProps, type NodeTypes } from '@xyflow/react';
 import { VsmCanvasContext } from '../components/VsmCanvasContext';
 import { SymbolSvg, isSymbolKind } from './VsmSymbols';
+import { todayIso } from '../components/KaizenList';
 import { SHAPES, readableTextColor } from '../model/shapes';
-import { HANDLE_SIDES, SHAPE_KINDS, type HandleSide, type ShapeKind, type ShapeNode, type VsmData, type VsmQuantity } from '../model/types';
+import { HANDLE_SIDES, SHAPE_KINDS, type HandleSide, type ShapeKind, type KaizenData, type ShapeNode, type VsmData, type VsmQuantity } from '../model/types';
 import { effectiveCycleSeconds, inventoryDays, isOverTakt } from '../model/vsmCalc';
-import { VSM_FIELDS, formatDays, formatDuration, formatNumber, formatQuantity, hasVsmContent, toSeconds } from '../model/vsm';
+import { KAIZEN_STATUS_LABELS, VSM_FIELDS, formatDays, formatDuration, formatNumber, formatQuantity, hasVsmContent, toSeconds } from '../model/vsm';
 
 const POSITIONS: Record<HandleSide, Position> = {
   top: Position.Top,
@@ -76,6 +77,7 @@ function ShapeNodeView({ type, data, selected }: NodeProps<ShapeNode>) {
           <div className="shape-title">{data.title.trim() || 'Başlıksız'}</div>
           {data.description && <div className="shape-desc">{data.description}</div>}
           {kind === 'customer' && <CustomerInfo demand={demand} taktSec={taktSec} />}
+          {kind === 'kaizen' && data.kaizen && <KaizenChip kaizen={data.kaizen} />}
         </div>
       )}
       {overTakt && (
@@ -110,6 +112,19 @@ function InventoryInfo({ stock, demand }: { stock: VsmQuantity; demand: VsmQuant
           {formatDays(wait.days)}
         </div>
       )}
+    </div>
+  );
+}
+
+/** Kaizen patlamasında durum ve sorumlu */
+function KaizenChip({ kaizen }: { kaizen: KaizenData }) {
+  if (!kaizen.owner && !kaizen.dueDate && kaizen.status === 'open') return null;
+  const late = kaizen.status !== 'done' && !!kaizen.dueDate && kaizen.dueDate < todayIso();
+  return (
+    <div className={`kaizen-chip kz-${kaizen.status}${late ? ' kz-late' : ''}`}>
+      {kaizen.status === 'done' ? '✓ ' : late ? '⚠ ' : ''}
+      {KAIZEN_STATUS_LABELS[kaizen.status]}
+      {kaizen.owner && ` · ${kaizen.owner}`}
     </div>
   );
 }

@@ -126,6 +126,17 @@ export interface InventoryData {
   safetyRate: VsmQuantity;
 }
 
+export const KAIZEN_STATUSES = ['open', 'doing', 'done'] as const;
+export type KaizenStatus = (typeof KAIZEN_STATUSES)[number];
+
+/** Kaizen patlamasının eylem bilgisi. */
+export interface KaizenData {
+  owner: string;
+  /** YYYY-AA-GG; boşsa tarih yok */
+  dueDate: string;
+  status: KaizenStatus;
+}
+
 /** Harita (hat) düzeyindeki VSM alanları. */
 export const VSM_MAP_FIELD_KEYS = ['customerDemand', 'netWorkingTime', 'shifts', 'shipmentFrequency', 'packQuantity'] as const;
 
@@ -148,8 +159,10 @@ export type ShapeData = {
   color: string;
   /** Yalnızca `process` türünde dolu; diğer şekillerde yoktur. */
   vsm?: VsmData;
-  /** Yalnızca `inventory` (stok üçgeni) türünde dolu. */
+  /** Yalnızca stok tutan şekillerde (stok üçgeni, süpermarket, FIFO, güvenlik stoğu) dolu. */
   inventory?: InventoryData;
+  /** Yalnızca `kaizen` şeklinde dolu. */
+  kaizen?: KaizenData;
 };
 
 /** Tuvaldeki (React Flow) şekil. `type` alanı şeklin türüdür. */

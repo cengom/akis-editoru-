@@ -5,9 +5,11 @@ import {
   cloneVsm,
   cloneVsmMap,
   emptyInventory,
+  emptyKaizen,
   emptyVsm,
   emptyVsmMap,
   parseInventory,
+  parseKaizen,
   parseVsm,
   parseVsmMap,
 } from './vsm';
@@ -104,6 +106,7 @@ export function toDocument(
 function copyData(kind: ShapeKind, data: ShapeData): ShapeData {
   const base: ShapeData = { title: data.title, description: data.description, color: data.color };
   if (kind === 'process') base.vsm = data.vsm ? cloneVsm(data.vsm) : emptyVsm();
+  if (kind === 'kaizen') base.kaizen = data.kaizen ? { ...data.kaizen } : emptyKaizen();
   if (isStockKind(kind)) base.inventory = data.inventory ? cloneInventory(data.inventory) : emptyInventory();
   return base;
 }
@@ -264,6 +267,11 @@ export function parseDocument(raw: unknown): ParseResult {
       if (!vsm) return;
       data.vsm = vsm;
       if (hasRemovedVsmValues(d.vsm)) removedValueCount++;
+    }
+    if (n.kind === 'kaizen') {
+      const kaizen = parseKaizen(d.kaizen, where, fail);
+      if (!kaizen) return;
+      data.kaizen = kaizen;
     }
     if (isStockKind(n.kind as string)) {
       const inventory = parseInventory(d.inventory, where, fail);

@@ -164,7 +164,13 @@ export function createExampleDocument(): DiagramDocument {
       // Prosesler arası stoklar (WIP): zaman çizgisinde bekleme olarak görünür
       inventory('stok-kesim', 895, 150, 'WIP', 120, 'adet', [50, 45]),
       inventory('stok-montaj', 1135, 150, 'WIP', 1.5, 'gün', [50, 45]),
-      node('kaizen-1', 'kaizen', 990, -175, 'Montaj çevrimini düşür'),
+      {
+        ...node('kaizen-1', 'kaizen', 990, -175, 'Montaj çevrimini düşür'),
+        data: {
+          ...node('kaizen-1', 'kaizen', 990, -175, 'Montaj çevrimini düşür').data,
+          kaizen: { owner: 'Üretim mühendisliği', dueDate: '2026-12-15', status: 'doing' },
+        },
+      },
     ],
     edges: [
       edge('basla', 'right', 'malzeme', 'left'),
