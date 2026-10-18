@@ -1,9 +1,9 @@
 import { newId } from '../model/document';
 import type { ProductFamily, VsmMapData } from '../model/types';
-import { DEMAND_SPEC, FAMILY_COLORS, MAX_FAMILIES, PACK_SPEC, newFamily } from '../model/vsm';
+import { COST_SPEC, DEMAND_SPEC, FAMILY_COLORS, MAX_FAMILIES, PACK_SPEC, newFamily } from '../model/vsm';
 import { QuantityTable } from './QuantityFields';
 
-/** Harita panelinde ürün aileleri: ad, talep, paket adedi; ekle / sil. */
+/** Harita panelinde ürün aileleri: ad, talep, paket adedi, birim maliyet; ekle / sil. */
 export function FamilyEditor({ vsmMap, onChange }: { vsmMap: VsmMapData; onChange: (m: VsmMapData) => void }) {
   const fams = vsmMap.families;
   const setFamily = (id: string, patch: Partial<ProductFamily>) =>
@@ -44,8 +44,8 @@ export function FamilyEditor({ vsmMap, onChange }: { vsmMap: VsmMapData; onChang
             )}
           </div>
           <QuantityTable
-            specs={[DEMAND_SPEC, PACK_SPEC]}
-            values={{ demand: f.demand, packQuantity: f.packQuantity }}
+            specs={[DEMAND_SPEC, PACK_SPEC, COST_SPEC]}
+            values={{ demand: f.demand, packQuantity: f.packQuantity, unitCost: f.unitCost }}
             onChange={(key, q) => setFamily(f.id, { [key]: q })}
             idPrefix={`aile-${f.id}`}
           />

@@ -15,8 +15,8 @@ import type { Edge, Node } from '@xyflow/react';
  *    proseste geçen aileler ve aile başına C/T, stokta aile.
  * Eski sürüm dosyaları hâlâ açılır; eksik alanlar boş kabul edilir, kaldırılan alanlar yok sayılır.
  */
-export const SCHEMA_VERSION = 9 as const;
-export const SUPPORTED_SCHEMA_VERSIONS = [1, 2, 3, 4, 5, 6, 7, 8, 9] as const;
+export const SCHEMA_VERSION = 10 as const;
+export const SUPPORTED_SCHEMA_VERSIONS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] as const;
 
 /** Dosyanın bu uygulamaya ait olduğunu gösteren işaret. */
 export const APP_ID = 'akis-editoru' as const;
@@ -107,6 +107,9 @@ export const VSM_UNITS = [
   'kez/ay',
   'hafta',
   'çeşit',
+  'TL/adet',
+  '€/adet',
+  '$/adet',
 ] as const;
 export type VsmUnit = (typeof VSM_UNITS)[number];
 
@@ -138,6 +141,8 @@ export interface InventoryData {
   replenishTime: VsmQuantity;
   /** Yalnızca süpermarket boyut hesabı için: güvenlik payı (%) */
   safetyRate: VsmQuantity;
+  /** Stoğun birim değeri (para/adet); boşsa ailenin birim maliyeti kullanılır */
+  unitValue: VsmQuantity;
   /** Stok tek bir aileye aitse o ailenin kimliği; `null` = tüm aileler */
   familyId: string | null;
 }
@@ -166,6 +171,8 @@ export interface ProductFamily {
   demand: VsmQuantity;
   /** adet */
   packQuantity: VsmQuantity;
+  /** Birim maliyet (para/adet); stok değeri için */
+  unitCost: VsmQuantity;
 }
 
 /** Hesapların görünümü: tek bir aile ya da tüm aileler birlikte */

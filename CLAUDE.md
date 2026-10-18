@@ -57,8 +57,8 @@ yalnızca biri olacak; uygulama bir VSM hesaplayıcısına dönüştürülmemeli
 - Bağlantılar `ConnectionMode.Loose` ile çalışır; her şeklin dört kenarında `top/right/bottom/left`
   kimlikli bağlantı noktası vardır. Kenar kimlikleri kayıtta saklanır.
 - Katman sırası: departman alanı (zIndex 0) < oklar (1) < diğer şekiller (2). Seçili ok öne çıkar.
-- JSON dosyası, yerel kayıt ve buluttaki `document_json` **aynı** formatı kullanır. Güncel sürüm 9;
-  sürüm 1–8 de okunur (kaldırılan alanlar yok sayılır, kullanıcıya `warnings` ile bildirilir).
+- JSON dosyası, yerel kayıt ve buluttaki `document_json` **aynı** formatı kullanır. Güncel sürüm 10;
+  sürüm 1–9 da okunur (kaldırılan alanlar yok sayılır, kullanıcıya `warnings` ile bildirilir).
 - Stok verisi `data.inventory`; stok tutan şekiller `STOCK_KINDS` (stok üçgeni, süpermarket, FIFO,
   güvenlik stoğu) ve hepsi zaman çizgisinde bekleme sayılır. Kaizen verisi `data.kaizen`.
 - Mevcut / gelecek durum: üst düzey alanlar her zaman **mevcut durumdur**; gelecek durum `futureState`.
@@ -77,6 +77,8 @@ yalnızca biri olacak; uygulama bir VSM hesaplayıcısına dönüştürülmemeli
   (`pacemakerInfo`) vsmCalc'tadır. Parti beklemesi yalnızca `vsmMap.includeBatchWait` açıkken lead time'a
   girer; varsayılan klasik sonuç değişmemeli. EPEI'de kullanılabilir süre = net − plansız duruş (uptime
   kullanılmaz, değişim kaybını içerebilir). Panel parçaları `src/components/MethodBoxes.tsx`.
+- Stok değeri `stockValue` (birim değer: stok → aile → ortak stokta talebe göre ağırlıklı ortalama); para
+  birimleri asla toplanmaz (`MoneyTotal.totals` para birimine göre). RTY `rtyOf` = Π(1 − hurda).
 - Zaman çizgisi sırası akış oklarından gelir (`flowOrder`: bilgi okları hariç, geri dönüşler kırılır). Buluttan gelen belge de `parseDocument` ile doğrulanır.
 - İki kayıt modu: **yerel taslak** (`STORAGE_KEY`, otomatik) ve **bulut proje** (manuel "Kaydet").
   Bulut projesi açıkken yerel taslağa yazılmaz; kaydedilmemiş değişiklikler `CLOUD_BACKUP_KEY` yedeğine
@@ -109,8 +111,8 @@ yalnızca biri olacak; uygulama bir VSM hesaplayıcısına dönüştürülmemeli
   Bu klasörün dışına dokunma. Eski `~/Documents/akis-editoru` kopyası artık kullanılmıyor.
 - Push yalnızca kullanıcının açık onayıyla. Depo herkese açık: `.env.local`, `referans-vsm.jpg`,
   `node_modules`, `dist` git'e girmemeli (`.gitignore`). Commit öncesi `git status` ile kontrol et.
-- GitHub Actions (`.github/workflows/test.yml`) her push'ta typecheck + test + build çalıştırır; Vercel
-  yayını buna bağlı değildir, bu yüzden yerel kontrol yine şarttır.
+- GitHub Actions (`.github/workflows/test.yml`) her push'ta typecheck + test + build çalıştırır. Vercel'in
+  derleme komutu da `vercel.json` ile `npm test && npm run build`; test geçmezse yayın yapılmaz.
 - Hesap ya da kayıt formatı değişirse `src/model/__tests__` altına test ekle; commit öncesi `npm test` ve
   `npm run build` geçmeli. Testler saf model fonksiyonlarını dener (tarayıcı/DOM yok).
 - Yaptığın özelliği tarayıcıda gerçekten dene; denemediğini "çalışıyor" diye sunma.

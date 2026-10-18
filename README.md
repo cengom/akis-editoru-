@@ -46,8 +46,8 @@ Diğer komutlar:
 GitHub'a her push'ta (ve pull request'te) `.github/workflows/test.yml` çalışır: bağımlılıkları kurar,
 tür kontrolü, hesap testleri (`npm test`) ve üretim derlemesi yapar. Sonucu GitHub'da deponun
 **Actions** sekmesinde ya da commit'in yanındaki ✓ / ✗ işaretinde görürsünüz. Ücretsizdir ve gizli
-anahtar kullanmaz. Not: Vercel yayını bundan bağımsızdır; testler başarısız olsa da Vercel yayınlar.
-Bu yüzden push'tan önce yerelde `npm test` ve `npm run build` çalıştırın.
+anahtar kullanmaz. Vercel de yayından önce testleri çalıştırır (`vercel.json`: `npm test && npm run build`): bir test
+başarısız olursa Vercel derlemesi durur ve **önceki sürüm yayında kalır**.
 
 ## Bulut kaydını kurma (Supabase, ücretsiz katman)
 
@@ -134,6 +134,13 @@ Uygulama tek sayfalık statik bir sitedir; sunucu kodu yoktur.
   Kullanılabilir süre = net süre − plansız duruş; üretim süresi = Σ(talep × C/T) ÷ (1 − hurda). Elle girilen
   EPEI bundan kısaysa "değişime zaman yetmez" uyarısı çıkar. Bir döngüde üretilecek miktar (talep × EPEI)
   de gösterilir.
+- **Zincir verimi (RTY):** Proseslere girilen hurda oranlarından ilk seferde sağlam çıkan parça oranı
+  hesaplanır: RTY = Π(1 − hurda). Özette "talebi karşılamak için giriş" (talep ÷ RTY) da görünür; birden
+  çok ailede aile tablosunda aile başına RTY vardır.
+- **Stok değeri:** Ürün ailesine **birim maliyet** (TL, € ya da $ / adet) girilir; stoğa ayrıca **birim
+  değer** girilebilir (ör. hammadde ucuz, mamul pahalı). Stok değeri = adet × birim değer (gün girildiyse
+  adet = gün × günlük talep). Ortak stokta ailelerin talebe göre ağırlıklı maliyeti kullanılır. Özette
+  toplam, karşılaştırma tablosunda mevcut ↔ gelecek farkı görünür. Farklı para birimleri toplanmaz.
 - **Birden fazla ürün ailesi (karma model):** "VSM verileri / özet" panelinde "+ Ürün ailesi ekle" ile
   en fazla 8 aile tanımlanır (ad, talep, paket adedi; renk otomatik). Proses seçilince "Ürün aileleri"
   bölümünde o prosesten geçen aileler işaretlenir (en az biri) ve gerekirse aileye özel C/T girilir; boş
@@ -226,7 +233,7 @@ JSON dosyası ve tarayıcı kaydı aynı biçimdedir (`src/model/types.ts`):
 ```json
 {
   "app": "akis-editoru",
-  "schemaVersion": 9,
+  "schemaVersion": 10,
   "name": "Diyagram adı",
   "savedAt": "2026-10-15T20:00:00.000Z",
   "viewport": { "x": 0, "y": 0, "zoom": 1 },
@@ -238,7 +245,8 @@ JSON dosyası ve tarayıcı kaydı aynı biçimdedir (`src/model/types.ts`):
     },
     "families": [
       { "id": "aile-1", "name": "Standart ürün", "color": "#2a78d6",
-        "demand": { "value": 460, "unit": "adet/gün" }, "packQuantity": { "value": 20, "unit": "adet" } }
+        "demand": { "value": 460, "unit": "adet/gün" }, "packQuantity": { "value": 20, "unit": "adet" },
+        "unitCost": { "value": 25, "unit": "TL/adet" } }
     ],
     "familyView": "all",
     "pacemakerId": null,
@@ -272,6 +280,9 @@ JSON dosyası ve tarayıcı kaydı aynı biçimdedir (`src/model/types.ts`):
 (`inventory`) `"inventory": { "stock": { "value": 120, "unit": "adet" } }` taşır (birim `adet` ya da `gün`).
 Şekil türleri (`kind`): `terminal`, `process`, `decision`, `department`, `note`, `customer`, `supplier`,
 `inventory`, `kaizen`. Bağlantı türleri (`kind`): `flow`, `info`, `material`, `shipment`.
+
+**Sürüm 10 değişikliği:** Ürün ailesinde `unitCost` (birim maliyet), stokta `unitValue` (birim değer);
+birimler `TL/adet`, `€/adet`, `$/adet`. Eski dosyalarda boş gelir.
 
 **Sürüm 9 değişikliği:** `vsmMap.pacemakerId` (hız belirleyici proses; yoksa `null`),
 `vsmMap.includeBatchWait` (parti beklemesi lead time'a eklensin mi; varsayılan `false`) ve proseste

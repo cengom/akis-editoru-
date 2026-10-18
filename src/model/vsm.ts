@@ -105,7 +105,10 @@ export const VSM_FIELDS: readonly VsmFieldSpec[] = [
 
 /* ---------- Stok üçgeni ---------- */
 
-export type InventoryFieldKey = 'stock' | 'replenishTime' | 'safetyRate';
+export type InventoryFieldKey = 'stock' | 'unitValue' | 'replenishTime' | 'safetyRate';
+
+/** Para birimli maliyet birimleri. Toplamlar para birimine göre ayrı tutulur. */
+export const COST_UNITS = ['TL/adet', '€/adet', '$/adet'] as const;
 
 export const INVENTORY_FIELDS: readonly QuantitySpec<InventoryFieldKey>[] = [
   {
@@ -116,6 +119,15 @@ export const INVENTORY_FIELDS: readonly QuantitySpec<InventoryFieldKey>[] = [
     defaultUnit: 'adet',
     advanced: false,
     hint: 'Adet girilirse bekleme günü müşteri talebinden hesaplanır.',
+  },
+  {
+    key: 'unitValue',
+    label: 'Birim değer',
+    short: 'Değer',
+    units: COST_UNITS,
+    defaultUnit: 'TL/adet',
+    advanced: false,
+    hint: 'Stok değeri için. Boşsa ürün ailesinin birim maliyeti kullanılır.',
   },
   // Süpermarket boyut hesabı (yalnızca süpermarkette gösterilir)
   {
@@ -177,6 +189,16 @@ export const PACK_SPEC: QuantitySpec<'packQuantity'> = {
 };
 
 /** En fazla aile sayısı: renkler doğrulanmış kategorik paletten sabit sırayla gelir, yeni renk üretilmez. */
+export const COST_SPEC: QuantitySpec<'unitCost'> = {
+  key: 'unitCost',
+  label: 'Birim maliyet',
+  short: 'Maliyet',
+  units: COST_UNITS,
+  defaultUnit: 'TL/adet',
+  advanced: false,
+  hint: 'Stok değeri hesabı için (stoğa ayrıca birim değer girilebilir).',
+};
+
 export const MAX_FAMILIES = 8;
 export const FAMILY_COLORS = ['#2a78d6', '#eb6834', '#1baf7a', '#eda100', '#e87ba4', '#008300', '#6250d6', '#e34948'];
 
@@ -187,6 +209,7 @@ export function newFamily(index: number, id: string): ProductFamily {
     color: FAMILY_COLORS[index % FAMILY_COLORS.length],
     demand: { value: null, unit: 'adet/gün' },
     packQuantity: { value: null, unit: 'adet' },
+    unitCost: { value: null, unit: 'TL/adet' },
   };
 }
 
@@ -233,6 +256,7 @@ export function cloneInventory(inv: InventoryData): InventoryData {
     stock: { ...inv.stock },
     replenishTime: { ...inv.replenishTime },
     safetyRate: { ...inv.safetyRate },
+    unitValue: { ...inv.unitValue },
     familyId: inv.familyId ?? null,
   };
 }
@@ -252,7 +276,7 @@ export function cloneVsmMap(map: VsmMapData): VsmMapData {
     fields: Object.fromEntries(VSM_MAP_FIELD_KEYS.map((k) => [k, { ...map.fields[k] }])) as Record<VsmMapFieldKey, VsmQuantity>,
     showTimeline: map.showTimeline,
     colorByTakt: map.colorByTakt,
-    families: map.families.map((f) => ({ ...f, demand: { ...f.demand }, packQuantity: { ...f.packQuantity } })),
+    families: map.families.map((f) => ({ ...f, demand: { ...f.demand }, packQuantity: { ...f.packQuantity }, unitCost: { ...f.unitCost } })),
     familyView: map.familyView,
     pacemakerId: map.pacemakerId,
     includeBatchWait: map.includeBatchWait,
@@ -328,6 +352,14 @@ export function formatDays(days: number): string {
 }
 
 /** Oranı yüzde olarak yazar; çok küçük oranlarda daha fazla basamak gösterir. */
+/** Para tutarı: 100'ün altında 2 ondalık, üstünde tam sayı. */
+export function formatMoney(amount: number, currency: string): string {
+  return `${formatNumber(amount, Math.abs(amount) < 100 ? 2 : 0)} ${currency}`;
+}
+
+/** "TL/adet" → "TL" */
+export const currencyOf = (unit: string) => unit.split('/')[0];
+
 export function formatPercent(ratio: number): string {
   const pct = ratio * 100;
   return `%${formatNumber(pct, pct < 1 ? 3 : 1)}`;
@@ -463,7 +495,13 @@ export function parseVsmMap(raw: unknown, fail: Fail): VsmMapData | null {
         fail(`${where}: kimlik geçersiz ya da tekrarlı.`);
         return null;
       }
-      const q = parseQuantityFields({ demand: f.demand, packQuantity: f.packQuantity }, [DEMAND_SPEC, PACK_SPEC], where, fail);
+      // Sürüm 10 öncesinde birim maliyet yoktur (boş gelir).
+      const q = parseQuantityFields(
+        { demand: f.demand, packQuantity: f.packQuantity, unitCost: f.unitCost },
+        [DEMAND_SPEC, PACK_SPEC, COST_SPEC],
+        where,
+        fail,
+      );
       if (!q) return null;
       ids.add(f.id);
       families.push({
@@ -472,6 +510,7 @@ export function parseVsmMap(raw: unknown, fail: Fail): VsmMapData | null {
         color: typeof f.color === 'string' && /^#[0-9a-fA-F]{6}$/.test(f.color) ? f.color.toLowerCase() : FAMILY_COLORS[i % FAMILY_COLORS.length],
         demand: q.demand,
         packQuantity: q.packQuantity,
+        unitCost: q.unitCost,
       });
     }
     result.families = families;

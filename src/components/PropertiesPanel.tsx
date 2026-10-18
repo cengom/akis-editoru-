@@ -2,8 +2,8 @@ import { COLOR_PRESETS, SHAPES } from '../model/shapes';
 import { LIMITS } from '../model/document';
 import { EDGE_KIND_SPECS } from '../model/edges';
 import { EDGE_KINDS, KAIZEN_STATUSES, isStockKind, type KaizenData, type KaizenStatus, type ProductFamily, type EdgeKind, type FlowEdge, type ShapeData, type ShapeKind, type InventoryData, type ShapeNode, type VsmData, type VsmMapData, type VsmQuantity } from '../model/types';
-import { INVENTORY_FIELDS, VSM_FIELDS, VSM_LIMITS, KAIZEN_STATUS_LABELS, emptyInventory, emptyKaizen, emptyVsm, formatDays, formatDuration, formatNumber, toSeconds , VSM_FIELD_SPECS, type QuantitySpec} from '../model/vsm';
-import { effectiveCycleSeconds, inventoryDays, isOverTakt, supermarketSizing, type VsmSummary } from '../model/vsmCalc';
+import { INVENTORY_FIELDS, VSM_FIELDS, VSM_LIMITS, KAIZEN_STATUS_LABELS, emptyInventory, emptyKaizen, emptyVsm, formatDays, formatDuration, formatMoney, formatNumber, toSeconds , VSM_FIELD_SPECS, type QuantitySpec} from '../model/vsm';
+import { effectiveCycleSeconds, inventoryDays, isOverTakt, stockValue, supermarketSizing, type VsmSummary } from '../model/vsmCalc';
 import { MapPanel } from './MapPanel';
 import { stockDemand } from '../model/families';
 import { OeeBreakdown } from './OeeBreakdown';
@@ -318,6 +318,8 @@ function InventoryEditor({
   const packQuantity: VsmQuantity = fam ? fam.packQuantity : multi ? { value: null, unit: 'adet' } : vsmMap.families[0].packQuantity;
   const wait = inventoryDays(inventory.stock, demand);
   const sizing = supermarketSizing(inventory.replenishTime, inventory.safetyRate, demand, packQuantity);
+  const value = stockValue(inventory, vsmMap);
+  const COST_SOURCE = { stock: 'stoğa girilen birim değer', family: 'ailenin birim maliyeti', weighted: 'ailelerin talebe göre ağırlıklı maliyeti' } as const;
   return (
     <section className="vsm-section" aria-label="Stok verisi">
       <h3>Stok verisi</h3>
@@ -353,6 +355,19 @@ function InventoryEditor({
           <span className="calc-value">{formatDays(wait.days)}</span>
         ) : (
           <strong>{formatDays(wait.days)}</strong>
+        )}
+      </p>
+      <p className="small" data-testid="stok-deger">
+        Stok değeri:{' '}
+        {value.amount === null ? (
+          <span className="muted">{value.reason}</span>
+        ) : (
+          <>
+            <span className="calc-value">{formatMoney(value.amount, value.currency!)}</span>{' '}
+            <span className="muted">
+              ({formatNumber(value.quantity!, 1)} adet × {formatMoney(value.unitCost!, value.currency!)}; {COST_SOURCE[value.costSource!]})
+            </span>
+          </>
         )}
       </p>
       <p className="muted small">

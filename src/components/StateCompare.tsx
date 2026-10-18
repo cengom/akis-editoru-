@@ -1,5 +1,5 @@
 import type { VsmSummary } from '../model/vsmCalc';
-import { formatDays, formatDuration, formatNumber, formatPercent } from '../model/vsm';
+import { formatDays, formatDuration, formatMoney, formatNumber, formatPercent } from '../model/vsm';
 
 interface Row {
   label: string;
@@ -11,10 +11,26 @@ interface Row {
 }
 
 /** Mevcut durum ve gelecek durum haritalarının özet karşılaştırması. */
+/** Tek para birimli toplam (iki haritada aynı birim olmalı); değilse karşılaştırılmaz. */
+function singleMoney(s: VsmSummary): { currency: string; amount: number } | null {
+  return s.inventoryValue.totals.length === 1 ? s.inventoryValue.totals[0] : null;
+}
+
 export function StateCompare({ current, future }: { current: VsmSummary; future: VsmSummary }) {
+  const cm = singleMoney(current);
+  const fm = singleMoney(future);
+  const sameCurrency = cm && fm && cm.currency === fm.currency;
+  const money = sameCurrency ? cm.currency : (cm ?? fm)?.currency;
   const rows: Row[] = [
     { label: 'Üretim lead time', current: current.leadTimeDays, future: future.leadTimeDays, format: formatDays, lowerIsBetter: true },
     { label: 'Stokta bekleme', current: current.waitDays.value, future: future.waitDays.value, format: formatDays, lowerIsBetter: true },
+    {
+      label: 'Stok değeri',
+      current: money && cm?.currency === money ? cm.amount : null,
+      future: money && fm?.currency === money ? fm.amount : null,
+      format: (v) => formatMoney(v, money ?? ''),
+      lowerIsBetter: true,
+    },
     { label: 'İşlem süresi (∑ C/T)', current: current.processingSec.value, future: future.processingSec.value, format: formatDuration, lowerIsBetter: true },
     { label: 'Değer katma oranı', current: current.valueAddedRatio, future: future.valueAddedRatio, format: formatPercent, lowerIsBetter: false },
     { label: 'Takt süresi', current: current.takt.seconds, future: future.takt.seconds, format: formatDuration, lowerIsBetter: null },
@@ -25,6 +41,7 @@ export function StateCompare({ current, future }: { current: VsmSummary; future:
       format: formatDuration,
       lowerIsBetter: true,
     },
+    { label: 'Zincir verimi (RTY)', current: current.rty.value, future: future.rty.value, format: formatPercent, lowerIsBetter: false },
     { label: 'Takt üstü proses', current: current.overTakt.length, future: future.overTakt.length, format: (v) => formatNumber(v), lowerIsBetter: true },
     { label: 'Operatör (girilen)', current: current.currentOperators.value, future: future.currentOperators.value, format: (v) => `${formatNumber(v)} kişi`, lowerIsBetter: true },
     { label: 'Toplam mesafe', current: current.totalDistance.value, future: future.totalDistance.value, format: (v) => `${formatNumber(v, 1)} m`, lowerIsBetter: true },

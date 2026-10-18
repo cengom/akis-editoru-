@@ -1,7 +1,7 @@
 import { useRef } from 'react';
 import type { ShapeNode, VsmMapData } from '../model/types';
-import type { Total, VsmSummary } from '../model/vsmCalc';
-import { VSM_MAP_FIELDS, formatDays, formatDuration, formatNumber, formatPercent } from '../model/vsm';
+import type { MoneyTotal, RtyResult, Total, VsmSummary } from '../model/vsmCalc';
+import { VSM_MAP_FIELDS, formatDays, formatDuration, formatMoney, formatNumber, formatPercent } from '../model/vsm';
 import { QuantityTable } from './QuantityFields';
 import { LoadChart, TaktChart } from './TaktChart';
 import { FamilyEditor } from './FamilyEditor';
@@ -137,6 +137,10 @@ export function MapPanel({ vsmMap, summary, kaizens, compare, onChange, onSelect
           <dd>
             <TotalValue total={summary.waitDays} count={summary.inventories.length} format={formatDays} testId="ozet-bekleme" />
           </dd>
+          <dt>Stok değeri (∑)</dt>
+          <dd>
+            <MoneyValue total={summary.inventoryValue} testId="ozet-stok-deger" />
+          </dd>
           <dt>Parti beklemesi (∑)</dt>
           <dd>
             <TotalValue
@@ -174,6 +178,18 @@ export function MapPanel({ vsmMap, summary, kaizens, compare, onChange, onSelect
               format={(v) => `${formatNumber(v, 2)} m`}
               testId="ozet-mesafe"
             />
+          </dd>
+          <dt>Zincir verimi (RTY)</dt>
+          <dd>
+            <RtyValue rty={summary.rty} testId="ozet-rty" />
+            {summary.requiredInputPerDay !== null && (
+              <div className="small">
+                Talebi karşılamak için giriş:{' '}
+                <span className="calc-value" title="talep ÷ RTY">
+                  {formatNumber(Math.ceil(summary.requiredInputPerDay - 1e-9))} adet/gün
+                </span>
+              </div>
+            )}
           </dd>
           <dt>Darboğaz (en büyük C/T)</dt>
           <dd>
@@ -302,7 +318,8 @@ export function MapPanel({ vsmMap, summary, kaizens, compare, onChange, onSelect
         )}
         <p className="muted small">
           Klasik VSM yöntemi: işlem süresi proseslerin çevrim süresidir (C/T); bekleme stok üçgenlerinden gelir (adet ÷
-          günlük talep). Lead time = bekleme + işlem süresi (isteğe bağlı: + parti beklemesi). Etkin C/T = C/T ÷ uptime ÷ (1 − hurda); yalnızca kapasite
+          günlük talep). Lead time = bekleme + işlem süresi (isteğe bağlı: + parti beklemesi). Zincir verimi (RTY) = Π(1 − hurda):
+          ilk seferde sağlam çıkan parça oranı. Etkin C/T = C/T ÷ uptime ÷ (1 − hurda); yalnızca kapasite
           karşılaştırmasında kullanılır. Boş alanlar toplama katılmaz; 0 katılır.
         </p>
       </section>
@@ -322,10 +339,11 @@ function FamilyTable({ summary }: { summary: VsmSummary }) {
           <th scope="col">Talep</th>
           <th scope="col">Takt</th>
           <th scope="col">Pitch</th>
+          <th scope="col">RTY</th>
         </tr>
       </thead>
       <tbody>
-        {summary.families.map(({ family, taktSec, pitchSec }) => (
+        {summary.families.map(({ family, taktSec, pitchSec, rty }) => (
           <tr key={family.id} className={summary.view?.id === family.id ? 'is-current' : undefined}>
             <th scope="row">
               <span className="family-dot" style={{ background: family.color }} aria-hidden="true" /> {family.name}
@@ -333,10 +351,49 @@ function FamilyTable({ summary }: { summary: VsmSummary }) {
             <td>{family.demand.value === null ? '—' : formatNumber(family.demand.value)}</td>
             <td>{taktSec === null ? '—' : <span className="calc-value">{formatDuration(taktSec)}</span>}</td>
             <td>{pitchSec === null ? '—' : <span className="calc-value">{formatDuration(pitchSec)}</span>}</td>
+            <td>{rty.value === null ? '—' : <span className="calc-value">{formatPercent(rty.value)}</span>}</td>
           </tr>
         ))}
       </tbody>
     </table>
+  );
+}
+
+/** Para birimine göre toplam stok değeri. */
+function MoneyValue({ total, testId }: { total: MoneyTotal; testId: string }) {
+  if (!total.totals.length) {
+    return <span className="muted small">{total.count ? 'Birim maliyet girilmedi (ürün ailesi ya da stok).' : 'Veri yok'}</span>;
+  }
+  return (
+    <>
+      <span className="calc-value" data-testid={testId}>
+        {total.totals.map((t) => formatMoney(t.amount, t.currency)).join(' + ')}
+      </span>
+      {total.filled < total.count && (
+        <span className="muted small">
+          {' '}
+          (değeri hesaplanan stok: {total.filled}/{total.count})
+        </span>
+      )}
+    </>
+  );
+}
+
+/** Zincir verimi; hurda girilmeyen prosesler belirtilir. */
+function RtyValue({ rty, testId }: { rty: RtyResult; testId: string }) {
+  if (rty.value === null) return <span className="muted small">Proseslere hurda % girilmedi.</span>;
+  return (
+    <>
+      <span className="calc-value" data-testid={testId} title="Π (1 − hurda)">
+        {formatPercent(rty.value)}
+      </span>
+      {rty.filled < rty.count && (
+        <span className="muted small">
+          {' '}
+          (hurda girilen proses: {rty.filled}/{rty.count})
+        </span>
+      )}
+    </>
   );
 }
 

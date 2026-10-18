@@ -1,5 +1,5 @@
-import { isStockKind, type FlowEdge, type ProductFamily, type ShapeKind, type ShapeNode, type VsmData, type VsmMapData, type VsmQuantity } from './types';
-import { toSeconds } from './vsm';
+import { isStockKind, type FlowEdge, type InventoryData, type ProductFamily, type ShapeKind, type ShapeNode, type VsmData, type VsmMapData, type VsmQuantity } from './types';
+import { currencyOf, toSeconds } from './vsm';
 import { familyCycle, isMultiFamily, passes, passingFamilies, stockDemand, stockInView, viewFamily, viewDemand, viewPack } from './families';
 
 /*
@@ -240,6 +240,64 @@ export function inventoryDays(stock: VsmQuantity, demand: VsmQuantity): Inventor
   return { days: stock.value / demand.value, calculated: true, reason: null };
 }
 
+/* ---------- Stok değeri ---------- */
+
+export interface StockValue {
+  amount: number | null;
+  /** "TL", "€", "$" */
+  currency: string | null;
+  /** Değerin hesaplandığı adet (gün girildiyse gün × talep) */
+  quantity: number | null;
+  /** Kullanılan birim değer ve kaynağı */
+  unitCost: number | null;
+  costSource: 'stock' | 'family' | 'weighted' | null;
+  reason: string | null;
+}
+
+/**
+ * Stok değeri = adet × birim değer. Gün girildiyse adet = gün × günlük talep.
+ * Birim değer: stoğa girilen; yoksa stoğun ailesinin birim maliyeti; ortak stokta ailelerin
+ * talebe göre ağırlıklı ortalaması (para birimleri aynıysa).
+ */
+export function stockValue(inv: InventoryData, map: VsmMapData): StockValue {
+  const empty = { amount: null, currency: null, quantity: null, unitCost: null, costSource: null } as const;
+  if (inv.stock.value === null) return { ...empty, reason: 'Stok girilmedi.' };
+  let quantity: number;
+  if (inv.stock.unit === 'gün') {
+    const d = stockDemand(inv, map).value;
+    if (d === null) return { ...empty, reason: 'Gün olarak girilen stoğun adedi için müşteri talebi gerekli.' };
+    quantity = inv.stock.value * d;
+  } else quantity = inv.stock.value;
+
+  let unitCost: number | null = null;
+  let unit: string | null = null;
+  let costSource: StockValue['costSource'] = null;
+  const fam = inv.familyId ? map.families.find((f) => f.id === inv.familyId) : map.families.length === 1 ? map.families[0] : undefined;
+  if (inv.unitValue.value !== null) {
+    [unitCost, unit, costSource] = [inv.unitValue.value, inv.unitValue.unit, 'stock'];
+  } else if (fam) {
+    if (fam.unitCost.value !== null) [unitCost, unit, costSource] = [fam.unitCost.value, fam.unitCost.unit, 'family'];
+  } else {
+    const known = map.families.filter((f) => f.unitCost.value !== null && f.demand.value !== null && f.demand.value > 0);
+    const units = new Set(known.map((f) => f.unitCost.unit));
+    if (units.size > 1) return { ...empty, quantity, reason: 'Ailelerin para birimi farklı; stoğa birim değer girin.' };
+    const dSum = known.reduce((a, f) => a + (f.demand.value as number), 0);
+    if (known.length && dSum > 0) {
+      unitCost = known.reduce((a, f) => a + (f.demand.value as number) * (f.unitCost.value as number), 0) / dSum;
+      [unit, costSource] = [known[0].unitCost.unit, 'weighted'];
+    }
+  }
+  if (unitCost === null || unit === null) return { ...empty, quantity, reason: 'Birim maliyet girilmedi (ürün ailesinde ya da stokta).' };
+  return { amount: quantity * unitCost, currency: currencyOf(unit), quantity, unitCost, costSource, reason: null };
+}
+
+export interface MoneyTotal {
+  /** Para birimine göre toplamlar (birden çok para birimi karışmaz) */
+  totals: { currency: string; amount: number }[];
+  filled: number;
+  count: number;
+}
+
 export interface SupermarketSizing {
   /** Gereken stok (adet) = günlük talep × yenileme (gün) × (1 + güvenlik) */
   requiredQty: number | null;
@@ -277,6 +335,8 @@ export interface ProcessStep {
   effectiveCycleSec: number | null;
   operators: number | null;
   distance: number | null;
+  /** Hurda / ret (%) */
+  scrapRate: number | null;
   /** C/T > takt */
   overTakt: boolean;
   /** C/T ≤ takt ama etkin C/T > takt (duruş/hurda nedeniyle kapasite yetmiyor) */
@@ -302,6 +362,7 @@ export interface InventoryStep extends InventoryDays {
   title: string;
   x: number;
   stock: VsmQuantity;
+  value: StockValue;
 }
 
 export type TimelineStep = ProcessStep | InventoryStep;
@@ -316,6 +377,27 @@ export interface FamilySummary {
   family: ProductFamily;
   taktSec: number | null;
   pitchSec: number | null;
+  /** Bu ailenin geçtiği proseslerin zincir verimi */
+  rty: RtyResult;
+}
+
+/** Zincir verimi (RTY, rolled throughput yield) = Π(1 − hurda). */
+export interface RtyResult {
+  /** 0–1; hiçbir proseste hurda girilmediyse `null` */
+  value: number | null;
+  /** Hurda girilen proses sayısı / toplam proses */
+  filled: number;
+  count: number;
+}
+
+/** Proseslerin hurda oranlarından zincir verimi. Boş hurda hesaba katılmaz; %0 katılır. */
+export function rtyOf(scrapRates: (number | null)[]): RtyResult {
+  const known = scrapRates.filter((v): v is number => v !== null);
+  return {
+    value: known.length ? known.reduce((acc, s) => acc * (1 - s / 100), 1) : null,
+    filled: known.length,
+    count: scrapRates.length,
+  };
 }
 
 export interface PacemakerInfo {
@@ -375,6 +457,12 @@ export interface VsmSummary {
   overTakt: ProcessStep[];
   /** OEE'si hesaplanan prosesler, düşükten yükseğe */
   oeeRanking: ProcessStep[];
+  /** Görünümdeki stokların toplam değeri */
+  inventoryValue: MoneyTotal;
+  /** Görünümdeki proseslerin zincir verimi */
+  rty: RtyResult;
+  /** Talebi karşılamak için hatta girmesi gereken adet/gün = talep ÷ RTY */
+  requiredInputPerDay: number | null;
   /** Yalnızca etkin C/T ile takt üstü olanlar */
   overTaktEffective: ProcessStep[];
   /** Adet girilmiş ama talep olmadığı için günü hesaplanamayan stok sayısı */
@@ -485,6 +573,7 @@ export function computeSummary(nodes: ShapeNode[], edges: FlowEdge[], map: VsmMa
         effectiveCycleSec,
         operators: f.operators.value,
         distance: f.distance.value,
+        scrapRate: f.scrapRate.value,
         overTakt,
         overTaktEffective,
         oee,
@@ -508,6 +597,7 @@ export function computeSummary(nodes: ShapeNode[], edges: FlowEdge[], map: VsmMa
       title: n.data.title.trim() || 'Stok',
       x: n.position.x,
       stock: n.data.inventory!.stock,
+      value: stockValue(n.data.inventory!, map),
       ...inventoryDays(n.data.inventory!.stock, stockDemand(n.data.inventory!, map)),
     }))
     .sort(byX);
@@ -559,11 +649,17 @@ export function computeSummary(nodes: ShapeNode[], edges: FlowEdge[], map: VsmMa
           ? 'Önce takt hesaplanmalı.'
           : 'Paket adedi girilmedi.';
 
+  // Aile başına zincir verimi: o ailenin geçtiği tüm VSM prosesleri (görünümden bağımsız).
+  const vsmProcesses = nodes.filter((n) => n.type === 'process' && n.data.vsm && Object.values(n.data.vsm.fields).some((q) => q.value !== null));
   const families: FamilySummary[] = map.families.map((fam) => {
     const t = netSec && fam.demand.value ? netSec / fam.demand.value : null;
     const pk = fam.packQuantity.value;
-    return { family: fam, taktSec: t, pitchSec: t !== null && pk ? t * pk : null };
+    const rtyFam = rtyOf(vsmProcesses.filter((n) => passes(n.data.vsm!, map, fam.id)).map((n) => n.data.vsm!.fields.scrapRate.value));
+    return { family: fam, taktSec: t, pitchSec: t !== null && pk ? t * pk : null, rty: rtyFam };
   });
+  const rty = rtyOf(processes.map((p) => p.scrapRate));
+  const viewDemandValue = viewDemand(map).value;
+  const requiredInputPerDay = rty.value !== null && rty.value > 0 && viewDemandValue !== null ? viewDemandValue / rty.value : null;
 
   const pacemaker = pacemakerInfo(nodes, edges, map, processes, rank);
 
@@ -593,6 +689,9 @@ export function computeSummary(nodes: ShapeNode[], edges: FlowEdge[], map: VsmMa
     totalDistance: sum(processes.map((p) => p.distance)),
     overTakt: processes.filter((p) => p.overTakt),
     overTaktEffective: processes.filter((p) => p.overTaktEffective),
+    rty,
+    requiredInputPerDay,
+    inventoryValue: moneyTotal(inventories.map((i) => i.value)),
     oeeRanking: processes.filter((p) => p.oee.oee !== null).sort((a, b) => (a.oee.oee as number) - (b.oee.oee as number)),
     inventoriesMissingDemand: inventories.filter((i) => i.days === null).length,
     netTimeOverDay: daySec !== null && daySec > 24 * 3600,
@@ -654,4 +753,15 @@ function pacemakerInfo(
   }
   if (step?.overTakt) warnings.push({ id: pm.id, text: `${title} takt üstü: hız belirleyici müşteri taktını karşılamalı.` });
   return { id: pm.id, title, step, warnings, suggestion: null };
+}
+
+function moneyTotal(values: StockValue[]): MoneyTotal {
+  const by = new Map<string, number>();
+  let filled = 0;
+  for (const v of values) {
+    if (v.amount === null || v.currency === null) continue;
+    filled++;
+    by.set(v.currency, (by.get(v.currency) ?? 0) + v.amount);
+  }
+  return { totals: [...by].map(([currency, amount]) => ({ currency, amount })), filled, count: values.length };
 }

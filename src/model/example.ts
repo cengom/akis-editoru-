@@ -77,10 +77,18 @@ function edge(
   return { id: `e-${source}-${target}`, source, target, sourceHandle, targetHandle, label, kind };
 }
 
-/** Örnek hat verileri: 460 dk/gün ÷ 460 adet/gün = 60 sn takt. */
+/** Örnek hat verileri: 460 dk/gün ÷ 460 adet/gün = 60 sn takt. Maliyetler uydurmadır. */
 function exampleMap(): VsmMapData {
   const map = emptyVsmMap();
-  map.families = [{ ...map.families[0], name: 'Standart ürün', demand: { value: 460, unit: 'adet/gün' }, packQuantity: { value: 20, unit: 'adet' } }];
+  map.families = [
+    {
+      ...map.families[0],
+      name: 'Standart ürün',
+      demand: { value: 460, unit: 'adet/gün' },
+      packQuantity: { value: 20, unit: 'adet' },
+      unitCost: { value: 25, unit: 'TL/adet' },
+    },
+  ];
   map.fields.netWorkingTime = { value: 460, unit: 'dk/gün' };
   map.fields.shifts = { value: 1, unit: 'vardiya' };
   map.fields.shipmentFrequency = { value: 1, unit: 'kez/gün' };
@@ -170,8 +178,8 @@ export function createExampleDocument(): DiagramDocument {
       node('tedarikci', 'supplier', -30, -360, 'Örnek Tedarikçi', 'Hammadde'),
       node('musteri', 'customer', 1940, -360, 'Örnek Müşteri'),
       node('planlama', 'process', 820, -280, 'Üretim planlama', 'MRP'),
-      inventory('stok-hammadde', 10, -150, 'Hammadde', 2, 'gün'),
-      inventory('stok-mamul', 1980, -150, 'Mamul', 300, 'adet'),
+      inventory('stok-hammadde', 10, -150, 'Hammadde', 2, 'gün', undefined, 'inventory', { unitValue: { value: 10, unit: 'TL/adet' } }),
+      inventory('stok-mamul', 1980, -150, 'Mamul', 300, 'adet', undefined, 'inventory', { unitValue: { value: 40, unit: 'TL/adet' } }),
       // Prosesler arası stoklar (WIP): zaman çizgisinde bekleme olarak görünür
       inventory('stok-kesim', 895, 150, 'WIP', 120, 'adet', [50, 45]),
       inventory('stok-montaj', 1135, 150, 'WIP', 1.5, 'gün', [50, 45]),
@@ -226,7 +234,7 @@ function exampleFuture(current: StateContent): StateContent {
     ...sm.data,
     title: 'Süpermarket',
     color: '#ffffff',
-    inventory: { stock: { value: 60, unit: 'adet' }, replenishTime: { value: 0.5, unit: 'gün' }, safetyRate: { value: 10, unit: '%' }, familyId: null },
+    inventory: { ...emptyInventory(), stock: { value: 60, unit: 'adet' }, replenishTime: { value: 0.5, unit: 'gün' }, safetyRate: { value: 10, unit: '%' } },
   };
   const fifo = byId('stok-montaj');
   Object.assign(fifo, { kind: 'fifo', width: 54, height: 30 });

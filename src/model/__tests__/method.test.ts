@@ -126,3 +126,81 @@ describe('örnek harita', () => {
     expect(kesim.epei.enteredTooShort).toBe(false);
   });
 });
+
+describe('zincir verimi (RTY)', () => {
+  it('Π(1 − hurda); boş hurda katılmaz, %0 katılır; gereken giriş = talep ÷ RTY', () => {
+    const { doc, nodes, edges } = exampleCanvas();
+    const s = computeSummary(nodes, edges, doc.vsmMap);
+    expect(s.rty.value).toBeCloseTo(0.97 * 0.99 * 1);
+    expect(s.rty).toMatchObject({ filled: 3, count: 3 });
+    expect(s.requiredInputPerDay).toBeCloseTo(460 / (0.97 * 0.99));
+    nodes.find((n) => n.id === 'paket')!.data.vsm!.fields.scrapRate = { value: null, unit: '%' };
+    expect(computeSummary(nodes, edges, doc.vsmMap).rty).toMatchObject({ filled: 2, count: 3 });
+  });
+
+  it('aile başına yalnızca geçtiği prosesler', () => {
+    const { doc, nodes, edges } = exampleCanvas((d) =>
+      d.vsmMap.families.push({ ...newFamily(1, 'ozel'), demand: { value: 100, unit: 'adet/gün' } }),
+    );
+    nodes.find((n) => n.id === 'kesim')!.data.vsm!.familyIds = ['aile-1'];
+    const fams = computeSummary(nodes, edges, doc.vsmMap).families;
+    expect(fams[0].rty.value).toBeCloseTo(0.97 * 0.99);
+    expect(fams[1].rty.value).toBeCloseTo(0.99);
+  });
+});
+
+describe('stok değeri', () => {
+  it('adet × birim değer; gün girildiyse gün × talep; stok değeri yoksa aile maliyeti', () => {
+    const { doc, nodes, edges } = exampleCanvas();
+    const s = computeSummary(nodes, edges, doc.vsmMap);
+    const v = (id: string) => s.inventories.find((i) => i.id === id)!.value;
+    expect(v('stok-hammadde')).toMatchObject({ quantity: 920, unitCost: 10, amount: 9200, currency: 'TL', costSource: 'stock' });
+    expect(v('stok-mamul').amount).toBe(12000);
+    expect(v('stok-kesim')).toMatchObject({ amount: 3000, costSource: 'family' });
+    expect(v('stok-montaj').amount).toBeCloseTo(690 * 25);
+    expect(s.inventoryValue).toEqual({ totals: [{ currency: 'TL', amount: 9200 + 12000 + 3000 + 17250 }], filled: 4, count: 4 });
+  });
+
+  it('ortak stokta ailelerin talebe göre ağırlıklı maliyeti; aileye ait stokta o ailenin', () => {
+    const { doc, nodes, edges } = exampleCanvas((d) =>
+      d.vsmMap.families.push({ ...newFamily(1, 'ozel'), demand: { value: 100, unit: 'adet/gün' }, unitCost: { value: 50, unit: 'TL/adet' } }),
+    );
+    const kesim = () => computeSummary(nodes, edges, doc.vsmMap).inventories.find((i) => i.id === 'stok-kesim')!.value;
+    expect(kesim().costSource).toBe('weighted');
+    expect(kesim().amount).toBeCloseTo((120 * (460 * 25 + 100 * 50)) / 560);
+    nodes.find((n) => n.id === 'stok-kesim')!.data.inventory!.familyId = 'ozel';
+    expect(kesim().amount).toBe(120 * 50);
+  });
+
+  it('para birimleri karışmaz', () => {
+    const { doc, nodes, edges } = exampleCanvas();
+    nodes.find((n) => n.id === 'stok-mamul')!.data.inventory!.unitValue = { value: 2, unit: '€/adet' };
+    const totals = computeSummary(nodes, edges, doc.vsmMap).inventoryValue.totals;
+    expect(totals).toEqual([
+      { currency: 'TL', amount: 9200 + 3000 + 17250 },
+      { currency: '€', amount: 600 },
+    ]);
+  });
+
+  it('maliyet yoksa değer boş ve nedenini söyler', () => {
+    const { doc, nodes, edges } = exampleCanvas((d) => (d.vsmMap.families[0].unitCost = { value: null, unit: 'TL/adet' }));
+    const s = computeSummary(nodes, edges, doc.vsmMap);
+    const kesim = s.inventories.find((i) => i.id === 'stok-kesim')!.value;
+    expect(kesim.amount).toBeNull();
+    expect(kesim.reason).toMatch(/Birim maliyet/);
+    expect(s.inventoryValue.filled).toBe(2);
+  });
+
+  it('sürüm 9 dosyasında birim maliyet boş gelir', () => {
+    const { doc } = exampleCanvas();
+    const old = JSON.parse(JSON.stringify(doc));
+    old.schemaVersion = 9;
+    delete old.vsmMap.families[0].unitCost;
+    for (const n of old.nodes) if (n.data.inventory) delete n.data.inventory.unitValue;
+    const r = parseDocument(old);
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.doc.vsmMap.families[0].unitCost.value).toBeNull();
+    expect(r.doc.nodes.find((n) => n.id === 'stok-mamul')!.data.inventory!.unitValue.value).toBeNull();
+  });
+});
