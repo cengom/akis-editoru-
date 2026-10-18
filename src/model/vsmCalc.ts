@@ -29,19 +29,89 @@ export function computeTakt(map: VsmMapData): TaktResult {
   return { seconds: net / demand, reason: null };
 }
 
+/* ---------- OEE ---------- */
+
+export interface OeeResult {
+  /** Hesapta kullanılan kullanılabilirlik (0–1): elle girilen uptime, yoksa duruşlardan hesaplanan */
+  availability: number | null;
+  availabilitySource: 'manual' | 'calculated' | null;
+  /** Duruş ve değişimlerden hesaplanan kullanılabilirlik (elle girilmiş olsa da gösterim için) */
+  availabilityCalculated: number | null;
+  performance: number | null;
+  quality: number | null;
+  oee: number | null;
+  /** OEE'yi hesaplamak için eksik olanlar */
+  missing: string[];
+  warnings: string[];
+  /** Günlük kapasite (adet/gün) = net süre × A × Q ÷ C/T */
+  capacityPerDay: number | null;
+}
+
 /**
- * Etkin çevrim süresi: duruşlar (uptime) ve hurda düşüldükten sonra iyi bir parçanın gerçekte aldığı süre.
- * Etkin C/T = C/T ÷ uptime ÷ (1 − hurda). Uptime ya da hurda boşsa o etki yok sayılır.
- * Yalnızca kapasite karşılaştırması içindir; zaman çizgisindeki işlem süresi klasik C/T olarak kalır.
+ * OEE = Kullanılabilirlik × Performans × Kalite.
+ * - A: uptime elle girildiyse o; değilse (net süre − duruş − değişim sayısı × C/O) ÷ net süre.
+ * - P: ideal C/T ÷ C/T (en fazla %100).
+ * - Q: 1 − hurda.
+ * `netSec`: günlük net çalışma süresi (saniye); harita verilerinden gelir.
  */
-export function effectiveCycleSeconds(vsm: VsmData): number | null {
+export function oeeOf(vsm: VsmData, netSec: number | null): OeeResult {
+  const f = vsm.fields;
+  const ct = toSeconds(f.cycleTime);
+  const missing: string[] = [];
+  const warnings: string[] = [];
+
+  let availabilityCalculated: number | null = null;
+  const downtime = f.unplannedDowntime.value;
+  const changeovers = f.changeoversPerDay.value;
+  if (netSec && netSec > 0 && (downtime !== null || changeovers !== null)) {
+    const co = toSeconds(f.changeoverTime);
+    if (changeovers !== null && changeovers > 0 && co === null) {
+      warnings.push('Değişim sayısı girildi ama setup (C/O) süresi yok; değişim kaybı hesaba katılmadı.');
+    }
+    const lost = (downtime ?? 0) * 60 + (changeovers ?? 0) * (co ?? 0);
+    availabilityCalculated = Math.max(0, (netSec - lost) / netSec);
+    if (lost > netSec) warnings.push('Duruş ve değişimler net çalışma süresinden uzun.');
+  }
+  const manual = f.uptime.value === null ? null : f.uptime.value / 100;
+  const availability = manual ?? availabilityCalculated;
+  const availabilitySource = manual !== null ? 'manual' : availabilityCalculated !== null ? 'calculated' : null;
+  if (availability === null) missing.push('kullanılabilirlik (uptime ya da duruş)');
+  if (manual !== null && availabilityCalculated !== null && Math.abs(manual - availabilityCalculated) > 0.02) {
+    warnings.push('Elle girilen uptime, duruşlardan hesaplanan kullanılabilirlikten farklı; hesapta elle girilen kullanıldı.');
+  }
+
+  const ideal = toSeconds(f.idealCycleTime);
+  let performance: number | null = null;
+  if (ideal !== null && ct !== null && ct > 0) {
+    performance = ideal / ct;
+    if (performance > 1) {
+      warnings.push('İdeal C/T, gerçek C/T\'den büyük; performans %100 kabul edildi.');
+      performance = 1;
+    }
+  } else missing.push(ct === null ? 'çevrim süresi (C/T)' : 'ideal C/T');
+
+  const quality = f.scrapRate.value === null ? null : 1 - f.scrapRate.value / 100;
+  if (quality === null) missing.push('hurda %');
+
+  const oee = availability !== null && performance !== null && quality !== null ? availability * performance * quality : null;
+  const capacityPerDay =
+    netSec && ct && ct > 0 ? (netSec * (availability ?? 1) * (quality ?? 1)) / ct : null;
+  return { availability, availabilitySource, availabilityCalculated, performance, quality, oee, missing, warnings, capacityPerDay };
+}
+
+/**
+ * Etkin çevrim süresi: duruşlar ve hurda düşüldükten sonra iyi bir parçanın gerçekte aldığı süre.
+ * Etkin C/T = C/T ÷ kullanılabilirlik ÷ (1 − hurda) (= ideal C/T ÷ OEE). Kullanılabilirlik elle girilen
+ * uptime, yoksa duruşlardan hesaplanan değerdir. Yalnızca kapasite karşılaştırması içindir; zaman
+ * çizgisindeki işlem süresi klasik C/T olarak kalır.
+ */
+export function effectiveCycleSeconds(vsm: VsmData, netSec: number | null = null): number | null {
   const ct = toSeconds(vsm.fields.cycleTime);
   if (ct === null) return null;
-  const uptime = vsm.fields.uptime.value;
-  const scrap = vsm.fields.scrapRate.value;
-  const u = uptime === null ? 1 : uptime / 100;
-  const good = scrap === null ? 1 : 1 - scrap / 100;
-  if (u <= 0 || good <= 0) return null; // %0 uptime ya da %100 hurda: üretim yok
+  const r = oeeOf(vsm, netSec);
+  const u = r.availability ?? 1;
+  const good = r.quality ?? 1;
+  if (u <= 0 || good <= 0) return null; // %0 kullanılabilirlik ya da %100 hurda: üretim yok
   return ct / u / good;
 }
 
@@ -109,6 +179,7 @@ export interface ProcessStep {
   overTakt: boolean;
   /** C/T ≤ takt ama etkin C/T > takt (duruş/hurda nedeniyle kapasite yetmiyor) */
   overTaktEffective: boolean;
+  oee: OeeResult;
 }
 
 export interface InventoryStep extends InventoryDays {
@@ -160,6 +231,8 @@ export interface VsmSummary {
   valueAddedRatio: number | null;
   totalDistance: Total;
   overTakt: ProcessStep[];
+  /** OEE'si hesaplanan prosesler, düşükten yükseğe */
+  oeeRanking: ProcessStep[];
   /** Yalnızca etkin C/T ile takt üstü olanlar */
   overTaktEffective: ProcessStep[];
   /** Adet girilmiş ama talep olmadığı için günü hesaplanamayan stok sayısı */
@@ -240,13 +313,14 @@ export function flowOrder(nodes: ShapeNode[], edges: FlowEdge[]): { rank: Map<st
 export function computeSummary(nodes: ShapeNode[], edges: FlowEdge[], map: VsmMapData): VsmSummary {
   const takt = computeTakt(map);
   const demand = map.fields.customerDemand;
+  const netSec = toSeconds(map.fields.netWorkingTime);
 
   const processes: ProcessStep[] = nodes
     .filter((n) => n.type === 'process' && n.data.vsm && Object.values(n.data.vsm.fields).some((q) => q.value !== null))
     .map((n) => {
       const f = n.data.vsm!.fields;
       const cycleSec = toSeconds(f.cycleTime);
-      const effectiveCycleSec = effectiveCycleSeconds(n.data.vsm!);
+      const effectiveCycleSec = effectiveCycleSeconds(n.data.vsm!, netSec);
       const overTakt = isOverTakt(cycleSec, takt.seconds);
       return {
         kind: 'process' as const,
@@ -259,6 +333,7 @@ export function computeSummary(nodes: ShapeNode[], edges: FlowEdge[], map: VsmMa
         distance: f.distance.value,
         overTakt,
         overTaktEffective: !overTakt && isOverTakt(effectiveCycleSec, takt.seconds),
+        oee: oeeOf(n.data.vsm!, netSec),
       };
     })
     .sort(byX);
@@ -325,6 +400,7 @@ export function computeSummary(nodes: ShapeNode[], edges: FlowEdge[], map: VsmMa
     totalDistance: sum(processes.map((p) => p.distance)),
     overTakt: processes.filter((p) => p.overTakt),
     overTaktEffective: processes.filter((p) => p.overTaktEffective),
+    oeeRanking: processes.filter((p) => p.oee.oee !== null).sort((a, b) => (a.oee.oee as number) - (b.oee.oee as number)),
     inventoriesMissingDemand: inventories.filter((i) => i.days === null).length,
     netTimeOverDay: daySec !== null && daySec > 24 * 3600,
   };

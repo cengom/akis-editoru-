@@ -118,6 +118,7 @@ export function createExampleDocument(): DiagramDocument {
           epei: [2, 'gün'],
           scrapRate: [3, '%'],
           batchSize: [120, 'adet'],
+          idealCycleTime: [45, 'sn'],
         }),
       ),
       withVsm(
@@ -130,6 +131,7 @@ export function createExampleDocument(): DiagramDocument {
           distance: [8, 'm'],
           scrapRate: [1, '%'],
           batchSize: [60, 'adet'],
+          idealCycleTime: [80, 'sn'],
         }),
       ),
       node('kalite', 'process', 1190, 50, 'Kalite kontrol', 'Örnek ölçüm yapılır.'),
@@ -141,10 +143,14 @@ export function createExampleDocument(): DiagramDocument {
           {
             cycleTime: [30, 'sn'],
             changeoverTime: [5, 'dk'],
-            uptime: [99, '%'],
             operators: [1, 'kişi'],
             distance: [25, 'm'],
             batchSize: [20, 'adet'],
+            scrapRate: [0, '%'],
+            idealCycleTime: [28, 'sn'],
+            // Uptime boş: kullanılabilirlik duruş ve değişimlerden hesaplanır
+            unplannedDowntime: [10, 'dk/gün'],
+            changeoversPerDay: [2, 'kez/gün'],
           },
           'Değerler örnektir.',
         ),

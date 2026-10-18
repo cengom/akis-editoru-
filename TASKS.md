@@ -99,7 +99,8 @@
 - [ ] Artık kullanılmayan özel `cengom/akis-editoru` (tiresiz) deposu: kullanıcı şimdilik tutmaya karar verdi (18.10.2026). Vercel'e bağlı değil; push'lar tireli depoya yapılmalı.
 - [ ] İsteğe bağlı: bulut projesinde otomatik kaydetme seçeneği
 
-- [ ] OEE bileşenleri (A × P × Q, ideal C/T, duruşlardan kullanılabilirlik) — ayrıntılı plan: `docs/plan-oee-ve-urun-aileleri.md`
+- [x] OEE bileşenleri (A × P × Q, ideal C/T, duruşlardan kullanılabilirlik, kapasite ve talep yükü) — sürüm 7
+- [x] Geri al / İleri al düğmeleri yazılı ve belirgin
 - [ ] Birden fazla ürün ailesi, karma model (aile talebi/takt, ürün–proses matrisi, proses yükü) — aynı plan belgesi
 - [ ] Zaman çizgisini tuval koordinatlarında (çizimle birlikte yakınlaşan) seçenek olarak sunmak
 - [ ] Vardiya başına net süre girişi (günlük toplamı otomatik hesaplama)

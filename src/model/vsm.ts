@@ -61,6 +61,35 @@ export const VSM_FIELDS: readonly VsmFieldSpec[] = [
   },
   { key: 'scrapRate', label: 'Hurda / ret', short: 'Hurda', units: ['%'], defaultUnit: '%', max: 100, advanced: true },
   { key: 'batchSize', label: 'Parti büyüklüğü', short: 'Parti', units: ['adet'], defaultUnit: 'adet', integer: true, advanced: true },
+  // OEE için
+  {
+    key: 'idealCycleTime',
+    label: 'İdeal C/T',
+    short: 'İdeal C/T',
+    units: TIME_UNITS,
+    defaultUnit: 'sn',
+    advanced: true,
+    hint: 'Tasarım / en iyi çevrim süresi. Performans = ideal C/T ÷ C/T.',
+  },
+  {
+    key: 'unplannedDowntime',
+    label: 'Plansız duruş',
+    short: 'Duruş',
+    units: ['dk/gün'],
+    defaultUnit: 'dk/gün',
+    advanced: true,
+    hint: 'Arıza vb. Uptime boşsa kullanılabilirlik bundan hesaplanır.',
+  },
+  {
+    key: 'changeoversPerDay',
+    label: 'Değişim sayısı',
+    short: 'Değişim',
+    units: ['kez/gün'],
+    defaultUnit: 'kez/gün',
+    integer: true,
+    advanced: true,
+    hint: 'Günde kaç kez setup yapılıyor (C/O ile çarpılır).',
+  },
 ];
 
 /* ---------- Stok üçgeni ---------- */

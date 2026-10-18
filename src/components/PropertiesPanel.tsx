@@ -5,6 +5,7 @@ import { EDGE_KINDS, KAIZEN_STATUSES, isStockKind, type KaizenData, type KaizenS
 import { INVENTORY_FIELDS, VSM_FIELDS, VSM_LIMITS, KAIZEN_STATUS_LABELS, emptyInventory, emptyKaizen, emptyVsm, formatDays, formatDuration, formatNumber, toSeconds } from '../model/vsm';
 import { effectiveCycleSeconds, inventoryDays, isOverTakt, supermarketSizing, type VsmSummary } from '../model/vsmCalc';
 import { MapPanel } from './MapPanel';
+import { OeeBreakdown } from './OeeBreakdown';
 import { QuantityTable } from './QuantityFields';
 
 interface Props {
@@ -61,6 +62,7 @@ export function PropertiesPanel(props: Props) {
         <NodeEditor
           node={selectedNodes[0]}
           taktSec={props.summary.takt.seconds}
+          netSec={toSeconds(props.vsmMap.fields.netWorkingTime)}
           demand={props.vsmMap.fields.customerDemand}
           packQuantity={props.vsmMap.fields.packQuantity}
           onUpdate={props.onUpdateNode}
@@ -111,12 +113,14 @@ function EmptyState({ nodeCount, edgeCount }: { nodeCount: number; edgeCount: nu
 function NodeEditor({
   node,
   taktSec,
+  netSec,
   demand,
   packQuantity,
   onUpdate,
 }: {
   node: ShapeNode;
   taktSec: number | null;
+  netSec: number | null;
   demand: VsmQuantity;
   packQuantity: VsmQuantity;
   onUpdate: Props['onUpdateNode'];
@@ -194,6 +198,8 @@ function NodeEditor({
           key={node.id}
           vsm={node.data.vsm ?? emptyVsm()}
           taktSec={taktSec}
+          netSec={netSec}
+          demand={demand}
           onChange={(vsm) => onUpdate(node.id, { vsm })}
         />
       )}
@@ -319,7 +325,19 @@ function InventoryEditor({
 
 /* ---------- VSM alanları (yalnızca proses) ---------- */
 
-function VsmEditor({ vsm, taktSec, onChange }: { vsm: VsmData; taktSec: number | null; onChange: (vsm: VsmData) => void }) {
+function VsmEditor({
+  vsm,
+  taktSec,
+  netSec,
+  demand,
+  onChange,
+}: {
+  vsm: VsmData;
+  taktSec: number | null;
+  netSec: number | null;
+  demand: VsmQuantity;
+  onChange: (vsm: VsmData) => void;
+}) {
   const basic = VSM_FIELDS.filter((f) => !f.advanced);
   const advanced = VSM_FIELDS.filter((f) => f.advanced);
   const advancedFilled = advanced.some((f) => vsm.fields[f.key].value !== null);
@@ -327,7 +345,7 @@ function VsmEditor({ vsm, taktSec, onChange }: { vsm: VsmData; taktSec: number |
     onChange({ ...vsm, fields: { ...vsm.fields, [key]: q } });
   const cycleSec = toSeconds(vsm.fields.cycleTime);
   const over = isOverTakt(cycleSec, taktSec);
-  const effective = effectiveCycleSeconds(vsm);
+  const effective = effectiveCycleSeconds(vsm, netSec);
   const showEffective = effective !== null && cycleSec !== null && effective > cycleSec + 1e-9;
   const overEffective = !over && isOverTakt(effective, taktSec);
 
@@ -350,6 +368,7 @@ function VsmEditor({ vsm, taktSec, onChange }: { vsm: VsmData; taktSec: number |
           <span className="calc-value">{formatDuration(taktSec!)}</span>) büyük. Bu proses talebi karşılayamayabilir.
         </p>
       )}
+      <OeeBreakdown vsm={vsm} netSec={netSec} demand={demand} />
       {showEffective && (
         <p className="small" data-testid="etkin-ct">
           Etkin C/T (uptime ve hurda dahil): <span className="calc-value">{formatDuration(effective!)}</span>

@@ -1,6 +1,7 @@
 # Plan: OEE bileşenleri ve birden fazla ürün ailesi
 
-Durum: tasarım onaylandı (18.10.2026), henüz uygulanmadı.
+Durum: tasarım onaylandı (18.10.2026). **1. bölüm (OEE) uygulandı** (kayıt formatı sürüm 7).
+2. bölüm (ürün aileleri) henüz uygulanmadı; kayıt formatı sürüm 8 olacak.
 Kararlar: OEE'de **karma giriş**; ürün aileleri için **tek harita, karma model (B)**.
 
 ## 1. OEE bileşenleri
@@ -39,7 +40,7 @@ OEE = Kullanılabilirlik (A) × Performans (P) × Kalite (Q). Sınıfının en i
 - Proses: `familyIds` (bu prosesten geçen aileler; boş = hepsi) ve isteğe bağlı aile başına C/T
   (`cycleTimeByFamily`; boşsa ortak C/T).
 - Stok şekli: isteğe bağlı `familyId` (boş = tüm aileler).
-- Kayıt formatı sürüm 7; eski dosyalar tek aileli açılır, değer kaybı yok.
+- Kayıt formatı sürüm 8; eski dosyalar tek aileli açılır, değer kaybı yok.
 
 ### Hesaplar
 - Aile takt'ı = net süre ÷ aile talebi; karma takt = net süre ÷ toplam talep.
@@ -56,7 +57,7 @@ OEE = Kullanılabilirlik (A) × Performans (P) × Kalite (Q). Sınıfının en i
 
 ## Uygulama sırası
 1. OEE veri alanları ve hesaplar → panel, veri kutusu, özet.
-2. Aile veri modeli + sürüm 7 geçişi (testlerle: eski dosyalar).
+2. Aile veri modeli + sürüm 8 geçişi (testlerle: eski dosyalar).
 3. Aile hesapları ve özet.
 4. Aile seçici, zaman çizgisi, takt ve yük grafikleri.
 Her adım tarayıcıda denenir ve ayrı commit edilir.

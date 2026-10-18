@@ -224,11 +224,11 @@ export function Toolbar(props: Props) {
         </div>
         <div className="toolbar-group">
           <span className="group-label">Düzen</span>
-          <button type="button" onClick={props.onUndo} disabled={!props.canUndo} title="Geri al (⌘/Ctrl+Z)" aria-label="Geri al">
-            ↶
+          <button type="button" onClick={props.onUndo} disabled={!props.canUndo} title="Son değişikliği geri al (⌘/Ctrl+Z)" aria-label="Geri al" className="undo-btn" data-testid="geri-al">
+            ↶ Geri al
           </button>
-          <button type="button" onClick={props.onRedo} disabled={!props.canRedo} title="İleri al (⇧+⌘/Ctrl+Z ya da Ctrl+Y)" aria-label="İleri al">
-            ↷
+          <button type="button" onClick={props.onRedo} disabled={!props.canRedo} title="Geri alınanı yeniden uygula (⇧+⌘/Ctrl+Z ya da Ctrl+Y)" aria-label="İleri al" className="undo-btn" data-testid="ileri-al">
+            ↷ İleri al
           </button>
           <button type="button" onClick={props.onCopy} disabled={!props.canDelete} title="Seçili şekilleri kopyala (⌘/Ctrl+C)">
             Kopyala

@@ -4,6 +4,7 @@ import type { Total, VsmSummary } from '../model/vsmCalc';
 import { VSM_MAP_FIELDS, formatDays, formatDuration, formatNumber, formatPercent } from '../model/vsm';
 import { QuantityTable } from './QuantityFields';
 import { TaktChart } from './TaktChart';
+import { OeeTable } from './OeeBreakdown';
 import { KaizenList } from './KaizenList';
 import { StateCompare } from './StateCompare';
 
@@ -174,6 +175,7 @@ export function MapPanel({ vsmMap, summary, kaizens, compare, onChange, onSelect
         </dl>
         <h4 className="chart-title">Takt – çevrim süresi</h4>
         <TaktChart summary={summary} onSelectNode={onSelectNode} />
+        <OeeTable summary={summary} onSelectNode={onSelectNode} />
         {summary.inventoriesMissingDemand > 0 && (
           <p className="warning-box">
             {summary.inventoriesMissingDemand} stok üçgeninde miktar adet olarak girildi ama müşteri talebi yok; bekleme

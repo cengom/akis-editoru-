@@ -108,6 +108,11 @@ Uygulama tek sayfalık statik bir sitedir; sunucu kodu yoktur.
   (m), EPEI, hurda (%), parti büyüklüğü ve not. Süreler sn/dk/saat olarak seçilebilir. Uptime ya da hurda
   girilirse **etkin C/T** (= C/T ÷ uptime ÷ (1 − hurda)) hesaplanır; etkin C/T taktı aşarsa turuncu
   kapasite uyarısı çıkar.
+- **OEE:** Gelişmiş alanlara **ideal C/T** girilirse prosesin OEE'si hesaplanır:
+  OEE = Kullanılabilirlik × Performans (ideal C/T ÷ C/T) × Kalite (1 − hurda). Kullanılabilirlik elle
+  girilen uptime'dır; uptime boşsa **plansız duruş** (dk/gün) ve **değişim sayısı** (× C/O) ile net
+  çalışma süresinden hesaplanır. Panelde dört çubuk, %85 hedefi, eksik bileşen notu ve günlük kapasite
+  ile talep yükü görünür; veri kutusunda OEE satırı, özette proses bazında OEE tablosu vardır.
   Ondalık için virgül ya da nokta yazabilirsiniz. Boş bırakılan alan "veri yok" demektir; 0 ise gerçek
   bir değerdir. Girilen değerler prosesin altındaki veri kutusunda görünür; kutu prosesle birlikte
   taşınır ve "Veri kutusunu tuvalde göster" ile gizlenebilir.
@@ -180,7 +185,7 @@ JSON dosyası ve tarayıcı kaydı aynı biçimdedir (`src/model/types.ts`):
 ```json
 {
   "app": "akis-editoru",
-  "schemaVersion": 6,
+  "schemaVersion": 7,
   "name": "Diyagram adı",
   "savedAt": "2026-10-15T20:00:00.000Z",
   "viewport": { "x": 0, "y": 0, "zoom": 1 },
@@ -220,6 +225,9 @@ JSON dosyası ve tarayıcı kaydı aynı biçimdedir (`src/model/types.ts`):
 (`inventory`) `"inventory": { "stock": { "value": 120, "unit": "adet" } }` taşır (birim `adet` ya da `gün`).
 Şekil türleri (`kind`): `terminal`, `process`, `decision`, `department`, `note`, `customer`, `supplier`,
 `inventory`, `kaizen`. Bağlantı türleri (`kind`): `flow`, `info`, `material`, `shipment`.
+
+**Sürüm 7 değişikliği:** Proseste OEE alanları (`idealCycleTime`, `unplannedDowntime`,
+`changeoversPerDay`). Eski dosyalarda boş gelir.
 
 **Sürüm 5–6 değişiklikleri:** Proseste EPEI, hurda ve parti büyüklüğü; haritada elle girilen pitch
 yerine paket adedi (pitch hesaplanır); yeni sembol türleri; stok şekillerinde süpermarket boyut alanları

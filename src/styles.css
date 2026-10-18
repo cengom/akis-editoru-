@@ -574,3 +574,22 @@ details.help { margin-bottom: 12px; }
 .sw-over { background: #fee2e2; }
 .csv-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .csv-row button { padding: 3px 8px; font-size: 12px; }
+.undo-btn { font-weight: 600; }
+.undo-btn:not(:disabled) { border-color: #93c5fd; background: #eff6ff; }
+
+/* ---------- OEE ---------- */
+.oee-box { display: grid; gap: 4px; padding: 8px; border: 1px solid #e5e7eb; border-radius: 6px; }
+.oee-box h4 { margin: 0 0 2px; font-size: 13px; }
+.oee-box p { margin: 0; }
+.oee-row { display: grid; grid-template-columns: 96px 1fr auto; align-items: center; gap: 6px; font-size: 12px; }
+.oee-label { color: #374151; }
+.oee-track { position: relative; height: 8px; background: #f1f5f9; border-radius: 4px; overflow: hidden; }
+.oee-fill { position: absolute; left: 0; top: 0; bottom: 0; background: #3b82f6; border-radius: 4px; }
+.oee-value { white-space: nowrap; font-variant-numeric: tabular-nums; }
+.oee-total { border-top: 1px solid #e5e7eb; padding-top: 4px; display: grid; gap: 2px; }
+.oee-total .oee-label { font-weight: 700; }
+.oee-total .oee-fill { background: #047857; }
+.oee-total.is-low .oee-fill { background: #b45309; }
+.oee-total.is-low p { color: #92400e; }
+.calc-value.over, strong.over { color: #b91c1c; }
+.vsm-box tr.oee-low td { color: #b45309; }

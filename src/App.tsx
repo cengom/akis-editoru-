@@ -53,6 +53,7 @@ import {
   type VsmMapData,
 } from './model/types';
 import { computeSummary } from './model/vsmCalc';
+import { toSeconds } from './model/vsm';
 import { edgeTypes } from './edges/FlowEdgeView';
 import { isTyping, useHistory } from './editor/useHistory';
 import { useClipboard } from './editor/useClipboard';
@@ -163,7 +164,11 @@ function Editor() {
   const demand = vsmMap.fields.customerDemand;
   // Sürükleme sırasında değişmez; şekiller gereksiz yere yeniden çizilmez.
   const colorByTakt = vsmMap.colorByTakt;
-  const canvasInfo = useMemo<VsmCanvasInfo>(() => ({ taktSec, demand, colorByTakt }), [taktSec, demand, colorByTakt]);
+  const netSec = toSeconds(vsmMap.fields.netWorkingTime);
+  const canvasInfo = useMemo<VsmCanvasInfo>(
+    () => ({ taktSec, demand, colorByTakt, netSec }),
+    [taktSec, demand, colorByTakt, netSec],
+  );
 
   /* ---------- Başka sekmede yapılan değişiklik uyarısı ---------- */
   useEffect(() => {

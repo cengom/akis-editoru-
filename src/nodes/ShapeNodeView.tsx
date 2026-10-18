@@ -5,8 +5,8 @@ import { SymbolSvg, isSymbolKind } from './VsmSymbols';
 import { todayIso } from '../components/KaizenList';
 import { SHAPES, readableTextColor } from '../model/shapes';
 import { HANDLE_SIDES, SHAPE_KINDS, type HandleSide, type ShapeKind, type KaizenData, type ShapeNode, type VsmData, type VsmQuantity } from '../model/types';
-import { effectiveCycleSeconds, inventoryDays, isOverTakt } from '../model/vsmCalc';
-import { KAIZEN_STATUS_LABELS, VSM_FIELDS, formatDays, formatDuration, formatNumber, formatQuantity, hasVsmContent, toSeconds } from '../model/vsm';
+import { effectiveCycleSeconds, inventoryDays, isOverTakt, oeeOf } from '../model/vsmCalc';
+import { KAIZEN_STATUS_LABELS, VSM_FIELDS, formatDays, formatPercent, formatDuration, formatNumber, formatQuantity, hasVsmContent, toSeconds } from '../model/vsm';
 
 const POSITIONS: Record<HandleSide, Position> = {
   top: Position.Top,
@@ -33,11 +33,11 @@ const OUTLINES: Partial<Record<ShapeKind, string>> = {
 function ShapeNodeView({ type, data, selected }: NodeProps<ShapeNode>) {
   const kind = type as ShapeKind;
   const spec = SHAPES[kind];
-  const { taktSec, demand, colorByTakt } = useContext(VsmCanvasContext);
+  const { taktSec, demand, colorByTakt, netSec } = useContext(VsmCanvasContext);
   const overTakt = kind === 'process' && !!data.vsm && isOverTakt(toSeconds(data.vsm.fields.cycleTime), taktSec);
-  const overEffective = kind === 'process' && !!data.vsm && !overTakt && isOverTakt(effectiveCycleSeconds(data.vsm), taktSec);
+  const overEffective = kind === 'process' && !!data.vsm && !overTakt && isOverTakt(effectiveCycleSeconds(data.vsm, netSec), taktSec);
   const outline = OUTLINES[kind];
-  const fill = (colorByTakt && kind === 'process' && data.vsm && taktColor(data.vsm, taktSec)) || data.color;
+  const fill = (colorByTakt && kind === 'process' && data.vsm && taktColor(data.vsm, taktSec, netSec)) || data.color;
   const style = {
     '--shape-color': fill,
     '--shape-text': readableTextColor(fill),
@@ -92,7 +92,7 @@ function ShapeNodeView({ type, data, selected }: NodeProps<ShapeNode>) {
         </div>
       )}
       {kind === 'process' && data.vsm?.showDataBox && hasVsmContent(data.vsm) && (
-        <VsmDataBox vsm={data.vsm} overTakt={overTakt} />
+        <VsmDataBox vsm={data.vsm} overTakt={overTakt} netSec={netSec} />
       )}
       {HANDLE_SIDES.map((side) => (
         <Handle key={side} id={side} type="source" position={POSITIONS[side]} className="shape-handle" />
@@ -121,8 +121,8 @@ function InventoryInfo({ stock, demand }: { stock: VsmQuantity; demand: VsmQuant
  * Takt oranına göre dolgu: etkin C/T ÷ takt ≤ %85 yeşil, ≤ %100 sarı, üstü kırmızı.
  * Takt ya da C/T yoksa `null` (prosesin kendi rengi kalır). Renk tek başına değil, takt rozetleriyle birlikte okunur.
  */
-function taktColor(vsm: VsmData, taktSec: number | null): string | null {
-  const ct = effectiveCycleSeconds(vsm);
+function taktColor(vsm: VsmData, taktSec: number | null, netSec: number | null): string | null {
+  const ct = effectiveCycleSeconds(vsm, netSec);
   if (ct === null || !taktSec) return null;
   const r = ct / taktSec;
   return r <= 0.85 ? '#d1fae5' : r <= 1 ? '#fef3c7' : '#fee2e2';
@@ -157,8 +157,9 @@ function CustomerInfo({ demand, taktSec }: { demand: VsmQuantity; taktSec: numbe
 }
 
 /** Prosesin altında duran VSM veri kutusu. Düğümün parçası olduğu için onunla birlikte taşınır. */
-function VsmDataBox({ vsm, overTakt }: { vsm: VsmData; overTakt: boolean }) {
+function VsmDataBox({ vsm, overTakt, netSec }: { vsm: VsmData; overTakt: boolean; netSec: number | null }) {
   const filled = VSM_FIELDS.filter((f) => vsm.fields[f.key].value !== null);
+  const oee = oeeOf(vsm, netSec).oee;
   return (
     <div className="vsm-box" data-testid="vsm-veri-kutusu">
       {filled.length > 0 && (
@@ -175,6 +176,14 @@ function VsmDataBox({ vsm, overTakt }: { vsm: VsmData; overTakt: boolean }) {
                 </tr>
               );
             })}
+            {oee !== null && (
+              <tr className={oee < 0.85 ? 'oee-low' : undefined}>
+                <th scope="row">OEE</th>
+                <td className="calc-value" title="Kullanılabilirlik × Performans × Kalite">
+                  {formatPercent(oee)}
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       )}

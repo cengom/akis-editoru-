@@ -10,10 +10,11 @@ import type { Edge, Node } from '@xyflow/react';
  *    (pitch artık takt × paket adedi olarak hesaplanır).
  * 6: gelecek durum haritası (`futureState`) ve açık olan harita (`activeState`); çekme/planlama sembolleri,
  *    süpermarket boyutu ve kaizen verisi.
+ * 7: OEE için proses alanları (ideal C/T, plansız duruş, günlük değişim sayısı).
  * Eski sürüm dosyaları hâlâ açılır; eksik alanlar boş kabul edilir, kaldırılan alanlar yok sayılır.
  */
-export const SCHEMA_VERSION = 6 as const;
-export const SUPPORTED_SCHEMA_VERSIONS = [1, 2, 3, 4, 5, 6] as const;
+export const SCHEMA_VERSION = 7 as const;
+export const SUPPORTED_SCHEMA_VERSIONS = [1, 2, 3, 4, 5, 6, 7] as const;
 
 /** Dosyanın bu uygulamaya ait olduğunu gösteren işaret. */
 export const APP_ID = 'akis-editoru' as const;
@@ -74,6 +75,9 @@ export const VSM_FIELD_KEYS = [
   'epei',
   'scrapRate',
   'batchSize',
+  'idealCycleTime',
+  'unplannedDowntime',
+  'changeoversPerDay',
 ] as const;
 
 /** Sürüm 4'te kaldırılan proses alanları (eski dosyalarda bulunabilir; okunmaz). */

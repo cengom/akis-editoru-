@@ -54,13 +54,16 @@ yalnızca biri olacak; uygulama bir VSM hesaplayıcısına dönüştürülmemeli
 - Bağlantılar `ConnectionMode.Loose` ile çalışır; her şeklin dört kenarında `top/right/bottom/left`
   kimlikli bağlantı noktası vardır. Kenar kimlikleri kayıtta saklanır.
 - Katman sırası: departman alanı (zIndex 0) < oklar (1) < diğer şekiller (2). Seçili ok öne çıkar.
-- JSON dosyası, yerel kayıt ve buluttaki `document_json` **aynı** formatı kullanır. Güncel sürüm 6;
-  sürüm 1–5 de okunur (kaldırılan alanlar yok sayılır, kullanıcıya `warnings` ile bildirilir).
+- JSON dosyası, yerel kayıt ve buluttaki `document_json` **aynı** formatı kullanır. Güncel sürüm 7;
+  sürüm 1–6 da okunur (kaldırılan alanlar yok sayılır, kullanıcıya `warnings` ile bildirilir).
 - Stok verisi `data.inventory`; stok tutan şekiller `STOCK_KINDS` (stok üçgeni, süpermarket, FIFO,
   güvenlik stoğu) ve hepsi zaman çizgisinde bekleme sayılır. Kaizen verisi `data.kaizen`.
 - Mevcut / gelecek durum: üst düzey alanlar her zaman **mevcut durumdur**; gelecek durum `futureState`.
   Editörde yalnızca açık harita React Flow durumundadır, diğeri App'te `otherState` olarak tutulur
   (`splitStates`, `toDocument(..., active, other)`). Bulutun "kaydedilmemiş" imzası iki haritayı da kapsar.
+- OEE: `oeeOf(vsm, netSec)` (vsmCalc). Kullanılabilirlik = elle uptime, yoksa duruş ve değişimlerden;
+  etkin C/T de aynı kullanılabilirliği kullanır (`effectiveCycleSeconds(vsm, netSec)`). Net süre harita
+  verisinden gelir ve tuvale `VsmCanvasContext.netSec` ile iletilir.
 - Zaman çizgisi sırası akış oklarından gelir (`flowOrder`: bilgi okları hariç, geri dönüşler kırılır). Buluttan gelen belge de `parseDocument` ile doğrulanır.
 - İki kayıt modu: **yerel taslak** (`STORAGE_KEY`, otomatik) ve **bulut proje** (manuel "Kaydet").
   Bulut projesi açıkken yerel taslağa yazılmaz; kaydedilmemiş değişiklikler `CLOUD_BACKUP_KEY` yedeğine
