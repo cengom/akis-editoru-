@@ -54,6 +54,8 @@ import {
 } from './model/types';
 import { computeSummary } from './model/vsmCalc';
 import { edgeTypes } from './edges/FlowEdgeView';
+import { isTyping, useHistory } from './editor/useHistory';
+import { useClipboard } from './editor/useClipboard';
 import { nodeTypes } from './nodes/ShapeNodeView';
 
 type Notice = CloudNotice;
@@ -133,6 +135,8 @@ function Editor() {
   /** Editörde açık olan harita (mevcut / gelecek durum) ve diğer haritanın içeriği */
   const [activeState, setActiveState] = useState<MapState>(initialSplit.active);
   const [otherState, setOtherState] = useState<StateContent | null>(initialSplit.otherContent);
+  /** Değişince geri alma geçmişi sıfırlanır (belge açma, harita değiştirme) */
+  const [historyKey, setHistoryKey] = useState(0);
   /** Paletten seçilen, yeni çekilecek okların türü */
   const [connectKind, setConnectKind] = useState<EdgeKind>('flow');
   const rf = useReactFlow<ShapeNode, FlowEdge>();
@@ -320,6 +324,7 @@ function Editor() {
       setActiveState(split.active);
       setOtherState(split.otherContent);
       loadActiveContent(split.activeContent, fit);
+      setHistoryKey((k) => k + 1);
     },
     [loadActiveContent],
   );
@@ -336,6 +341,7 @@ function Editor() {
     setOtherState(snapshot);
     setActiveState(target);
     loadActiveContent(next, false);
+    setHistoryKey((k) => k + 1);
   };
 
   const askSwitchState = (target: MapState) => {
@@ -363,6 +369,7 @@ function Editor() {
           const current = otherState;
           setOtherState(null);
           loadActiveContent(current, false);
+          setHistoryKey((k) => k + 1);
         } else setOtherState(null);
       },
     });
@@ -401,6 +408,51 @@ function Editor() {
     }, SAVE_DELAY_MS);
     return () => window.clearTimeout(timer);
   }, [name, nodes, edges, vsmMap, activeState, otherState, viewTick, rf, inCloud, cp.project?.id, onCloudChange]);
+
+  /* ---------- Geri al / ileri al, kopyala / yapıştır ---------- */
+  const history = useHistory(
+    { nodes, edges, vsmMap, name },
+    (snap) => {
+      setNodes(snap.nodes);
+      setEdges(snap.edges);
+      setVsmMap(snap.vsmMap);
+      setName(snap.name);
+    },
+    historyKey,
+  );
+  const clipboard = useClipboard(rf.getNodes, rf.getEdges, setNodes, setEdges);
+  const copySelection = () => {
+    const n = clipboard.copy();
+    if (n) setNotice({ type: 'success', title: `${n} şekil kopyalandı. Yapıştırmak için ⌘/Ctrl+V.` });
+  };
+  const pasteClipboard = () => {
+    if (!clipboard.paste()) setNotice({ type: 'info', title: 'Önce bir ya da birkaç şekil seçip kopyalayın.' });
+  };
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (!(e.metaKey || e.ctrlKey) || isTyping(e.target)) return;
+      const key = e.key.toLowerCase();
+      if (key === 'z' && !e.shiftKey) {
+        e.preventDefault();
+        history.undo();
+      } else if ((key === 'z' && e.shiftKey) || key === 'y') {
+        e.preventDefault();
+        history.redo();
+      } else if (key === 'c') {
+        // Sayfada metin seçiliyse tarayıcının kopyalaması çalışsın.
+        if (window.getSelection()?.toString()) return;
+        if (clipboard.copy()) e.preventDefault();
+      } else if (key === 'v') {
+        if (clipboard.paste()) e.preventDefault();
+      } else if (key === 'd') {
+        e.preventDefault();
+        if (clipboard.copy()) clipboard.paste();
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  });
 
   const whereText = inCloud ? 'Açık bulut projesinin içeriği değişecek (Kaydet ile buluta yazılır).' : '';
 
@@ -491,6 +543,12 @@ function Editor() {
         onZoomOut={() => void rf.zoomOut({ duration: 200 })}
         onFit={() => void rf.fitView({ padding: 0.15, duration: 300 })}
         onShowMap={clearSelection}
+        onUndo={history.undo}
+        onRedo={history.redo}
+        canUndo={history.canUndo}
+        canRedo={history.canRedo}
+        onCopy={copySelection}
+        onPaste={pasteClipboard}
         activeState={activeState}
         hasFuture={activeState === 'future' || otherState !== null}
         onSwitchState={askSwitchState}

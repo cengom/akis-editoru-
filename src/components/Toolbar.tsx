@@ -31,6 +31,13 @@ interface Props {
   onZoomOut: () => void;
   onFit: () => void;
   onShowMap: () => void;
+  // Düzen
+  onUndo: () => void;
+  onRedo: () => void;
+  canUndo: boolean;
+  canRedo: boolean;
+  onCopy: () => void;
+  onPaste: () => void;
   // Mevcut / gelecek durum
   activeState: MapState;
   hasFuture: boolean;
@@ -212,6 +219,21 @@ export function Toolbar(props: Props) {
               Kaldır
             </button>
           )}
+        </div>
+        <div className="toolbar-group">
+          <span className="group-label">Düzen</span>
+          <button type="button" onClick={props.onUndo} disabled={!props.canUndo} title="Geri al (⌘/Ctrl+Z)" aria-label="Geri al">
+            ↶
+          </button>
+          <button type="button" onClick={props.onRedo} disabled={!props.canRedo} title="İleri al (⇧+⌘/Ctrl+Z ya da Ctrl+Y)" aria-label="İleri al">
+            ↷
+          </button>
+          <button type="button" onClick={props.onCopy} disabled={!props.canDelete} title="Seçili şekilleri kopyala (⌘/Ctrl+C)">
+            Kopyala
+          </button>
+          <button type="button" onClick={props.onPaste} title="Yapıştır (⌘/Ctrl+V); çoğalt: ⌘/Ctrl+D">
+            Yapıştır
+          </button>
         </div>
         <div className="toolbar-group">
           <span className="group-label">Tuval</span>
