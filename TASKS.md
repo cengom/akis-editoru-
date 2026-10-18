@@ -96,7 +96,7 @@
 - [ ] Herkese açık yayından önce: CAPTCHA (Supabase Auth), kullanıcı başına proje sayısı/boyut sınırı
 - [x] Vercel'e yayın: https://akis-editoru.vercel.app (Vercel projesi `cengoo/akis-editoru`, depo `cengom/akis-editoru-`, `main` dalına her push otomatik yayınlanır)
 - [x] Supabase → Authentication → URL Configuration → Site URL = https://akis-editoru.vercel.app (kullanıcı yaptı, 18.10.2026)
-- [ ] Artık kullanılmayan özel `cengom/akis-editoru` (tiresiz) deposunu arşivleme/silme kararı (kullanıcı)
+- [ ] Artık kullanılmayan özel `cengom/akis-editoru` (tiresiz) deposu: kullanıcı şimdilik tutmaya karar verdi (18.10.2026). Vercel'e bağlı değil; push'lar tireli depoya yapılmalı.
 - [ ] İsteğe bağlı: bulut projesinde otomatik kaydetme seçeneği
 
 - [ ] Birden fazla ürün ailesi (aile başına talep, takt ve zaman çizgisi)
