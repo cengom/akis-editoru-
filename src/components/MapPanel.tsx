@@ -1,3 +1,4 @@
+import { useRef } from 'react';
 import type { ShapeNode, VsmMapData } from '../model/types';
 import type { Total, VsmSummary } from '../model/vsmCalc';
 import { VSM_MAP_FIELDS, formatDays, formatDuration, formatNumber, formatPercent } from '../model/vsm';
@@ -10,13 +11,16 @@ interface Props {
   vsmMap: VsmMapData;
   kaizens: ShapeNode[];
   compare: { current: VsmSummary; future: VsmSummary } | null;
+  onExportCsv: () => void;
+  onImportCsv: (file: File) => void;
   summary: VsmSummary;
   onChange: (map: VsmMapData) => void;
   onSelectNode: (id: string) => void;
 }
 
 /** Hiçbir şey seçili değilken: harita düzeyi VSM verileri ve hesaplanan VSM özeti. */
-export function MapPanel({ vsmMap, summary, kaizens, compare, onChange, onSelectNode }: Props) {
+export function MapPanel({ vsmMap, summary, kaizens, compare, onChange, onSelectNode, onExportCsv, onImportCsv }: Props) {
+  const csvInput = useRef<HTMLInputElement>(null);
   const basic = VSM_MAP_FIELDS.filter((f) => !f.advanced);
   const advanced = VSM_MAP_FIELDS.filter((f) => f.advanced);
   const setField = (key: keyof VsmMapData['fields'], q: VsmMapData['fields'][typeof key]) =>
@@ -41,6 +45,42 @@ export function MapPanel({ vsmMap, summary, kaizens, compare, onChange, onSelect
           />
           Tuvalin altında zaman çizgisini göster
         </label>
+        <label className="check">
+          <input
+            type="checkbox"
+            checked={vsmMap.colorByTakt}
+            onChange={(e) => onChange({ ...vsmMap, colorByTakt: e.target.checked })}
+            data-testid="takta-gore-renk"
+          />
+          Prosesleri takta göre renklendir
+        </label>
+        {vsmMap.colorByTakt && (
+          <p className="color-legend small">
+            <span className="sw sw-ok" /> etkin C/T ≤ %85 takt <span className="sw sw-near" /> ≤ %100 <span className="sw sw-over" /> takt
+            üstü
+          </p>
+        )}
+        <div className="csv-row">
+          <span className="small">Proses verileri (Excel/CSV):</span>
+          <button type="button" onClick={onExportCsv} data-testid="csv-disa">
+            Dışa aktar
+          </button>
+          <button type="button" onClick={() => csvInput.current?.click()}>
+            İçe aktar
+          </button>
+          <input
+            ref={csvInput}
+            type="file"
+            accept=".csv,text/csv"
+            hidden
+            data-testid="csv-ice"
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              e.target.value = '';
+              if (f) onImportCsv(f);
+            }}
+          />
+        </div>
       </section>
 
       <section className="vsm-section vsm-summary" aria-label="VSM özeti" data-testid="vsm-ozeti">

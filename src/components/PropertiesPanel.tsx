@@ -16,6 +16,8 @@ interface Props {
   summary: VsmSummary;
   /** Gelecek durum varsa iki haritanın özeti */
   compare: { current: VsmSummary; future: VsmSummary } | null;
+  onExportCsv: () => void;
+  onImportCsv: (file: File) => void;
   onUpdateNode: (id: string, patch: Partial<ShapeData>) => void;
   onUpdateEdgeLabel: (id: string, label: string) => void;
   onUpdateEdgeKind: (id: string, kind: EdgeKind) => void;
@@ -47,6 +49,8 @@ export function PropertiesPanel(props: Props) {
             summary={props.summary}
             kaizens={props.nodes.filter((n) => n.type === 'kaizen')}
             compare={props.compare}
+            onExportCsv={props.onExportCsv}
+            onImportCsv={props.onImportCsv}
             onChange={props.onUpdateMap}
             onSelectNode={props.onSelectNode}
           />

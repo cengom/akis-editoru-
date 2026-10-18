@@ -151,6 +151,8 @@ export interface VsmMapData {
   fields: Record<VsmMapFieldKey, VsmQuantity>;
   /** Tuvalin altında zaman çizgisi gösterilsin mi? */
   showTimeline: boolean;
+  /** Prosesler C/T ÷ takt oranına göre renklendirilsin mi? (yalnızca görünüm) */
+  colorByTakt: boolean;
 }
 
 /** Bir şeklin taşıdığı, düzenlenebilir veri. */

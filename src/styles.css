@@ -565,3 +565,12 @@ details.help { margin-bottom: 12px; }
 .compare-table thead th { color: var(--muted); font-weight: 500; }
 .compare-table .better { color: #047857; font-weight: 600; }
 .compare-table .worse { color: #b91c1c; font-weight: 600; }
+
+/* ---------- Takta göre renk ve CSV ---------- */
+.color-legend { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin: 0; color: var(--muted); }
+.color-legend .sw { display: inline-block; width: 12px; height: 12px; border: 1px solid #9ca3af; border-radius: 3px; margin-left: 4px; }
+.sw-ok { background: #d1fae5; }
+.sw-near { background: #fef3c7; }
+.sw-over { background: #fee2e2; }
+.csv-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.csv-row button { padding: 3px 8px; font-size: 12px; }

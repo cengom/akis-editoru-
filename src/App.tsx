@@ -57,6 +57,7 @@ import { edgeTypes } from './edges/FlowEdgeView';
 import { isTyping, useHistory } from './editor/useHistory';
 import { useClipboard } from './editor/useClipboard';
 import { diagramToPng, downloadDataUrl, printDocument, printHtml } from './editor/exportImage';
+import { planCsvImport, processesToCsv } from './model/csv';
 import { nodeTypes } from './nodes/ShapeNodeView';
 
 type Notice = CloudNotice;
@@ -161,7 +162,8 @@ function Editor() {
   const taktSec = summary.takt.seconds;
   const demand = vsmMap.fields.customerDemand;
   // Sürükleme sırasında değişmez; şekiller gereksiz yere yeniden çizilmez.
-  const canvasInfo = useMemo<VsmCanvasInfo>(() => ({ taktSec, demand }), [taktSec, demand]);
+  const colorByTakt = vsmMap.colorByTakt;
+  const canvasInfo = useMemo<VsmCanvasInfo>(() => ({ taktSec, demand, colorByTakt }), [taktSec, demand, colorByTakt]);
 
   /* ---------- Başka sekmede yapılan değişiklik uyarısı ---------- */
   useEffect(() => {
@@ -511,6 +513,55 @@ function Editor() {
     printDocument(printHtml(name.trim() || 'Diyagram', stateLabel, img, summary));
   };
 
+  const exportCsv = () => {
+    const csv = processesToCsv(nodes);
+    const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${safeFileName()}-prosesler-${activeState === 'future' ? 'gelecek' : 'mevcut'}.csv`;
+    a.click();
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+    setNotice({ type: 'success', title: `"${a.download}" indirildi. Excel'de açıp düzenledikten sonra içe aktarabilirsiniz.` });
+  };
+
+  const importCsv = async (file: File) => {
+    if (file.size > LIMITS.fileBytes) {
+      setNotice({ type: 'error', title: 'Dosya çok büyük (en fazla 5 MB). Hiçbir şey değişmedi.' });
+      return;
+    }
+    let text: string;
+    try {
+      text = await file.text();
+    } catch {
+      setNotice({ type: 'error', title: 'Dosya okunamadı. Hiçbir şey değişmedi.' });
+      return;
+    }
+    const plan = planCsvImport(text, nodes);
+    if (plan.errors.length) {
+      setNotice({ type: 'error', title: `"${file.name}" içe aktarılamadı; hiçbir proses değişmedi.`, details: plan.errors });
+      return;
+    }
+    if (plan.updates.size === 0) {
+      setNotice({
+        type: 'error',
+        title: 'Dosyadaki proses adları tuvaldeki hiçbir prosesle eşleşmedi; hiçbir şey değişmedi.',
+        details: plan.unmatched.slice(0, 10),
+      });
+      return;
+    }
+    setConfirm({
+      title: 'Proses verilerini içe aktar',
+      message: `${plan.updates.size} prosesin VSM verisi dosyadakiyle güncellenecek (geri alınabilir).${
+        plan.unmatched.length ? `\n\nTuvalde bulunamayıp atlanan: ${plan.unmatched.join(', ')}` : ''
+      }`,
+      confirmLabel: 'Güncelle',
+      onConfirm: () => {
+        setNodes((ns) => ns.map((n) => (plan.updates.has(n.id) ? { ...n, data: { ...n.data, vsm: plan.updates.get(n.id) } } : n)));
+        setNotice({ type: 'success', title: `${plan.updates.size} prosesin verisi güncellendi.` });
+      },
+    });
+  };
+
   const exportJson = () => {
     const doc = getDocument();
     const blob = new Blob([JSON.stringify(doc, null, 2)], { type: 'application/json' });
@@ -679,6 +730,8 @@ function Editor() {
           vsmMap={vsmMap}
           summary={summary}
           compare={compare}
+          onExportCsv={exportCsv}
+          onImportCsv={(f) => void importCsv(f)}
           onUpdateEdgeLabel={updateEdgeLabel}
           onUpdateEdgeKind={updateEdgeKind}
           onUpdateMap={setVsmMap}

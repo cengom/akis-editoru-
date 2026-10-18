@@ -8,9 +8,12 @@ import type { VsmQuantity } from '../model/types';
 export interface VsmCanvasInfo {
   taktSec: number | null;
   demand: VsmQuantity;
+  /** Prosesleri takt oranına göre renklendir */
+  colorByTakt: boolean;
 }
 
 export const VsmCanvasContext = createContext<VsmCanvasInfo>({
   taktSec: null,
   demand: { value: null, unit: 'adet/gün' },
+  colorByTakt: false,
 });

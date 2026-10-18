@@ -146,7 +146,7 @@ export function emptyVsm(): VsmData {
 
 /** Yeni bir harita için boş genel VSM verisi. */
 export function emptyVsmMap(): VsmMapData {
-  return { fields: emptyFields(VSM_MAP_FIELDS), showTimeline: false };
+  return { fields: emptyFields(VSM_MAP_FIELDS), showTimeline: false, colorByTakt: false };
 }
 
 /** Yeni bir stok üçgeni için boş veri. */
@@ -170,6 +170,7 @@ export function cloneVsmMap(map: VsmMapData): VsmMapData {
   return {
     fields: Object.fromEntries(VSM_MAP_FIELD_KEYS.map((k) => [k, { ...map.fields[k] }])) as Record<VsmMapFieldKey, VsmQuantity>,
     showTimeline: map.showTimeline,
+    colorByTakt: map.colorByTakt,
   };
 }
 
@@ -339,6 +340,7 @@ export function parseVsmMap(raw: unknown, fail: Fail): VsmMapData | null {
     return null;
   }
   if (typeof raw.showTimeline === 'boolean') result.showTimeline = raw.showTimeline;
+  if (typeof raw.colorByTakt === 'boolean') result.colorByTakt = raw.colorByTakt;
   const fields = parseQuantityFields(raw.fields, VSM_MAP_FIELDS, 'VSM genel verileri', fail);
   if (!fields) return null;
   result.fields = fields;

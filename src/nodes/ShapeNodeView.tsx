@@ -33,13 +33,14 @@ const OUTLINES: Partial<Record<ShapeKind, string>> = {
 function ShapeNodeView({ type, data, selected }: NodeProps<ShapeNode>) {
   const kind = type as ShapeKind;
   const spec = SHAPES[kind];
-  const { taktSec, demand } = useContext(VsmCanvasContext);
+  const { taktSec, demand, colorByTakt } = useContext(VsmCanvasContext);
   const overTakt = kind === 'process' && !!data.vsm && isOverTakt(toSeconds(data.vsm.fields.cycleTime), taktSec);
   const overEffective = kind === 'process' && !!data.vsm && !overTakt && isOverTakt(effectiveCycleSeconds(data.vsm), taktSec);
   const outline = OUTLINES[kind];
+  const fill = (colorByTakt && kind === 'process' && data.vsm && taktColor(data.vsm, taktSec)) || data.color;
   const style = {
-    '--shape-color': data.color,
-    '--shape-text': readableTextColor(data.color),
+    '--shape-color': fill,
+    '--shape-text': readableTextColor(fill),
   } as CSSProperties;
   const symbol = isSymbolKind(kind);
   const classes = ['shape', `shape-${kind}`, outline ? 'shape-svg' : '', symbol ? 'shape-symbol' : '', selected ? 'is-selected' : '', overTakt ? 'is-over-takt' : '']
@@ -114,6 +115,17 @@ function InventoryInfo({ stock, demand }: { stock: VsmQuantity; demand: VsmQuant
       )}
     </div>
   );
+}
+
+/**
+ * Takt oranına göre dolgu: etkin C/T ÷ takt ≤ %85 yeşil, ≤ %100 sarı, üstü kırmızı.
+ * Takt ya da C/T yoksa `null` (prosesin kendi rengi kalır). Renk tek başına değil, takt rozetleriyle birlikte okunur.
+ */
+function taktColor(vsm: VsmData, taktSec: number | null): string | null {
+  const ct = effectiveCycleSeconds(vsm);
+  if (ct === null || !taktSec) return null;
+  const r = ct / taktSec;
+  return r <= 0.85 ? '#d1fae5' : r <= 1 ? '#fef3c7' : '#fee2e2';
 }
 
 /** Kaizen patlamasında durum ve sorumlu */
