@@ -289,7 +289,7 @@ dialog.confirm {
 dialog.confirm::backdrop { background: rgba(17, 24, 39, 0.35); }
 dialog.confirm h2 { margin: 0 0 8px; font-size: 16px; }
 .confirm-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; flex-wrap: wrap; }
-.confirm-message { line-height: 1.5; }
+.confirm-message { line-height: 1.5; white-space: pre-line; }
 button.danger-solid { background: var(--danger); border-color: var(--danger); color: #fff; }
 button.danger-text { color: var(--danger); }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
@@ -427,10 +427,14 @@ details.help { margin-bottom: 12px; }
 .timeline th, .timeline td { padding: 3px 12px; text-align: center; font-variant-numeric: tabular-nums; }
 .timeline thead th { font-weight: 600; font-size: 11px; }
 .timeline .row-head { text-align: left; color: var(--muted); font-weight: 500; padding-left: 0; }
-/* Merdiven görünümü: değer katan üst basamak, bekleme alt basamak */
-.timeline .tl-va td:not(.tl-total) { border-top: 3px solid #111827; border-left: 1px solid #9ca3af; }
-.timeline .tl-nva td:not(.tl-total) { border-bottom: 3px solid #9ca3af; border-left: 1px solid #9ca3af; color: #6b7280; }
+/* Merdiven görünümü (klasik VSM): stokta bekleme üst basamak, işlem süresi (C/T) alt basamak */
+.timeline .tl-wait td.tl-on { border-top: 3px solid #111827; border-left: 1px solid #9ca3af; border-right: 1px solid #9ca3af; }
+.timeline .tl-process td.tl-on { border-bottom: 3px solid #111827; border-left: 1px solid #9ca3af; border-right: 1px solid #9ca3af; font-weight: 600; }
+.timeline td.tl-off { color: transparent; }
+.timeline thead th.tl-col-inventory { color: #92400e; }
 .timeline .tl-total { text-align: left; border-left: 2px solid #111827; padding-left: 10px; }
 .timeline .tl-total-head { text-align: left; border-left: 2px solid #111827; padding-left: 10px; }
 .timeline .tl-lead td { padding-top: 1px; }
 .tl-warn { color: #dc2626; }
+
+.inventory-stock { font-size: 11px; line-height: 1.3; }

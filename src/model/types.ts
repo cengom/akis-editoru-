@@ -4,10 +4,12 @@ import type { Edge, Node } from '@xyflow/react';
  * Kayıt formatının sürümü. Formatta değişiklik olursa artırılır.
  * 1: ilk sürüm. 2: proseslere VSM verileri (`data.vsm`) eklendi.
  * 3: harita düzeyi VSM verileri (`vsmMap`), VSM şekilleri ve bağlantı türleri (`edge.kind`).
- * Eski sürüm dosyaları hâlâ açılır; eksik alanlar boş kabul edilir.
+ * 4: klasik VSM yöntemi — proseste "değer katan/katmayan süre" ve "WIP" alanları kaldırıldı;
+ *    stok verisi stok üçgenlerinde (`data.inventory`). İşlem süresi = çevrim süresi (C/T).
+ * Eski sürüm dosyaları hâlâ açılır; eksik alanlar boş kabul edilir, kaldırılan alanlar yok sayılır.
  */
-export const SCHEMA_VERSION = 3 as const;
-export const SUPPORTED_SCHEMA_VERSIONS = [1, 2, 3] as const;
+export const SCHEMA_VERSION = 4 as const;
+export const SUPPORTED_SCHEMA_VERSIONS = [1, 2, 3, 4] as const;
 
 /** Dosyanın bu uygulamaya ait olduğunu gösteren işaret. */
 export const APP_ID = 'akis-editoru' as const;
@@ -46,11 +48,11 @@ export const VSM_FIELD_KEYS = [
   'changeoverTime',
   'uptime',
   'operators',
-  'wip',
-  'valueAddedTime',
-  'nonValueAddedTime',
   'distance',
 ] as const;
+
+/** Sürüm 4'te kaldırılan proses alanları (eski dosyalarda bulunabilir; okunmaz). */
+export const REMOVED_VSM_FIELD_KEYS = ['wip', 'valueAddedTime', 'nonValueAddedTime'] as const;
 export type VsmFieldKey = (typeof VSM_FIELD_KEYS)[number];
 
 export const TIME_UNITS = ['sn', 'dk', 'saat'] as const;
@@ -91,6 +93,11 @@ export interface VsmData {
   note: string;
 }
 
+/** Stok üçgeninin verisi. Miktar adet ya da doğrudan gün olarak girilir. */
+export interface InventoryData {
+  stock: VsmQuantity;
+}
+
 /** Harita (hat) düzeyindeki VSM alanları. */
 export const VSM_MAP_FIELD_KEYS = ['customerDemand', 'netWorkingTime', 'shifts', 'shipmentFrequency', 'pitch'] as const;
 export type VsmMapFieldKey = (typeof VSM_MAP_FIELD_KEYS)[number];
@@ -110,6 +117,8 @@ export type ShapeData = {
   color: string;
   /** Yalnızca `process` türünde dolu; diğer şekillerde yoktur. */
   vsm?: VsmData;
+  /** Yalnızca `inventory` (stok üçgeni) türünde dolu. */
+  inventory?: InventoryData;
 };
 
 /** Tuvaldeki (React Flow) şekil. `type` alanı şeklin türüdür. */

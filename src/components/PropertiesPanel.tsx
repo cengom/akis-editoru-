@@ -1,9 +1,9 @@
 import { COLOR_PRESETS, SHAPES } from '../model/shapes';
 import { LIMITS } from '../model/document';
 import { EDGE_KIND_SPECS } from '../model/edges';
-import { EDGE_KINDS, type EdgeKind, type FlowEdge, type ShapeData, type ShapeKind, type ShapeNode, type VsmData, type VsmMapData } from '../model/types';
-import { VSM_FIELDS, VSM_LIMITS, emptyVsm, formatDuration, toSeconds } from '../model/vsm';
-import { isOverTakt, type VsmSummary } from '../model/vsmCalc';
+import { EDGE_KINDS, type EdgeKind, type FlowEdge, type ShapeData, type ShapeKind, type InventoryData, type ShapeNode, type VsmData, type VsmMapData, type VsmQuantity } from '../model/types';
+import { INVENTORY_FIELDS, VSM_FIELDS, VSM_LIMITS, emptyInventory, emptyVsm, formatDays, formatDuration, toSeconds } from '../model/vsm';
+import { inventoryDays, isOverTakt, type VsmSummary } from '../model/vsmCalc';
 import { MapPanel } from './MapPanel';
 import { QuantityTable } from './QuantityFields';
 
@@ -45,7 +45,12 @@ export function PropertiesPanel(props: Props) {
         </>
       )}
       {total === 1 && selectedNodes[0] && (
-        <NodeEditor node={selectedNodes[0]} taktSec={props.summary.takt.seconds} onUpdate={props.onUpdateNode} />
+        <NodeEditor
+          node={selectedNodes[0]}
+          taktSec={props.summary.takt.seconds}
+          demand={props.vsmMap.fields.customerDemand}
+          onUpdate={props.onUpdateNode}
+        />
       )}
       {total === 1 && selectedEdges[0] && (
         <EdgeEditor
@@ -92,10 +97,12 @@ function EmptyState({ nodeCount, edgeCount }: { nodeCount: number; edgeCount: nu
 function NodeEditor({
   node,
   taktSec,
+  demand,
   onUpdate,
 }: {
   node: ShapeNode;
   taktSec: number | null;
+  demand: VsmQuantity;
   onUpdate: Props['onUpdateNode'];
 }) {
   const kind = node.type as ShapeKind;
@@ -113,7 +120,7 @@ function NodeEditor({
         />
       </label>
       <label>
-        {kind === 'inventory' ? 'Açıklama (ör. miktar, bekleme süresi)' : 'Açıklama'}
+        Açıklama
         <textarea
           value={node.data.description}
           maxLength={LIMITS.description}
@@ -153,6 +160,14 @@ function NodeEditor({
       <p className="muted small">
         Konum: x {Math.round(node.position.x)}, y {Math.round(node.position.y)}
       </p>
+      {kind === 'inventory' && (
+        <InventoryEditor
+          key={node.id}
+          inventory={node.data.inventory ?? emptyInventory()}
+          demand={demand}
+          onChange={(inventory) => onUpdate(node.id, { inventory })}
+        />
+      )}
       {kind === 'process' && (
         <VsmEditor
           key={node.id}
@@ -162,6 +177,44 @@ function NodeEditor({
         />
       )}
     </div>
+  );
+}
+
+/* ---------- Stok üçgeni ---------- */
+
+function InventoryEditor({
+  inventory,
+  demand,
+  onChange,
+}: {
+  inventory: InventoryData;
+  demand: VsmQuantity;
+  onChange: (inv: InventoryData) => void;
+}) {
+  const wait = inventoryDays(inventory.stock, demand);
+  return (
+    <section className="vsm-section" aria-label="Stok verisi">
+      <h3>Stok verisi</h3>
+      <QuantityTable
+        specs={INVENTORY_FIELDS}
+        values={inventory}
+        onChange={(_key, q) => onChange({ ...inventory, stock: q })}
+        idPrefix="stok"
+      />
+      <p className="small" data-testid="stok-bekleme">
+        Bekleme:{' '}
+        {wait.days === null ? (
+          <span className="muted">{wait.reason}</span>
+        ) : wait.calculated ? (
+          <span className="calc-value">{formatDays(wait.days)}</span>
+        ) : (
+          <strong>{formatDays(wait.days)}</strong>
+        )}
+      </p>
+      <p className="muted small">
+        Zaman çizgisinde üst basamak olarak gösterilir. Adet girilirse gün = adet ÷ günlük müşteri talebi.
+      </p>
+    </section>
   );
 }
 

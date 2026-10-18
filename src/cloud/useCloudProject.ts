@@ -297,7 +297,11 @@ export function useCloudProject(p: Params) {
         }
         enterProject(row, userRef.current.id, parsed.doc, false);
         setProjectsOpen(false);
-        paramsRef.current.notify({ type: 'success', title: `"${row.name}" açıldı.` });
+        paramsRef.current.notify(
+          parsed.warnings.length
+            ? { type: 'info', title: `"${row.name}" açıldı (yeni VSM yöntemine göre).`, details: parsed.warnings }
+            : { type: 'success', title: `"${row.name}" açıldı.` },
+        );
       } catch (e) {
         paramsRef.current.notify({ type: 'error', title: errorText(e) });
       }

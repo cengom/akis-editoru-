@@ -10,7 +10,7 @@ const BACKUP_KEY = 'akis-editoru.cizim.bozuk-yedek';
 
 export type LoadResult =
   | { status: 'empty' }
-  | { status: 'ok'; doc: DiagramDocument }
+  | { status: 'ok'; doc: DiagramDocument; warnings: string[] }
   | { status: 'invalid'; errors: string[] };
 
 export function loadFromStorage(): LoadResult {
@@ -22,7 +22,7 @@ export function loadFromStorage(): LoadResult {
   }
   if (text === null) return { status: 'empty' };
   const result = parseDocumentText(text);
-  if (result.ok) return { status: 'ok', doc: result.doc };
+  if (result.ok) return { status: 'ok', doc: result.doc, warnings: result.warnings };
   // Okunamayan kaydı silmeden ayrı bir anahtara yedekle.
   try {
     localStorage.setItem(BACKUP_KEY, text);

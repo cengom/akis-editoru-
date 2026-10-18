@@ -62,7 +62,15 @@ function loadInitial(): Initial {
 /** Yerel taslağı okur; yoksa örnek süreç, okunamazsa uyarıyla örnek süreç. */
 function loadLocalDraft(): Omit<Initial, 'cloudBackup'> {
   const result = loadFromStorage();
-  if (result.status === 'ok') return { doc: result.doc, fit: false, notice: null };
+  if (result.status === 'ok') {
+    return {
+      doc: result.doc,
+      fit: false,
+      notice: result.warnings.length
+        ? { type: 'info', title: 'Taslak yeni VSM yöntemine göre açıldı.', details: result.warnings }
+        : null,
+    };
+  }
   if (result.status === 'invalid') {
     return {
       doc: createExampleDocument(),
@@ -373,7 +381,9 @@ function Editor() {
     }
     setConfirm({
       title: 'JSON içe aktar',
-      message: `"${file.name}" dosyası geçerli (${result.doc.nodes.length} şekil, ${result.doc.edges.length} bağlantı). Mevcut çizimin yerine açılsın mı? ${whereText}`,
+      message: `"${file.name}" dosyası geçerli (${result.doc.nodes.length} şekil, ${result.doc.edges.length} bağlantı). Mevcut çizimin yerine açılsın mı? ${whereText}${
+        result.warnings.length ? `\n\nNot: ${result.warnings.join(' ')}` : ''
+      }`,
       confirmLabel: 'İçe aktar',
       onConfirm: () => {
         replaceDocument(inCloud ? { ...result.doc, name } : result.doc, false);

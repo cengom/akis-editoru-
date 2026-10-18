@@ -1,5 +1,5 @@
-import type { VsmSummary } from '../model/vsmCalc';
-import { formatDuration } from '../model/vsm';
+import type { TimelineStep, VsmSummary } from '../model/vsmCalc';
+import { formatDays, formatDuration, formatPercent, formatQuantity } from '../model/vsm';
 
 interface Props {
   summary: VsmSummary;
@@ -7,39 +7,38 @@ interface Props {
   onClose: () => void;
 }
 
-const dur = (sec: number | null) => (sec === null ? '—' : formatDuration(sec));
-
 /**
- * Tuvalin altındaki VSM zaman çizgisi. Prosesler soldan sağa (tuvaldeki x konumuna göre) sıralanır.
- * Üst satır değer katan süre, alt satır bekleme / değer katmayan süredir. Sağda toplamlar hesaplanır.
+ * Tuvalin altındaki VSM zaman çizgisi (merdiven). Prosesler ve stok üçgenleri tuvaldeki soldan sağa
+ * sırayla dizilir. Üst basamak: stokta bekleme (gün). Alt basamak: prosesin çevrim süresi (C/T).
+ * Sağda toplam bekleme, toplam işlem süresi, lead time ve değer katma oranı hesaplanır.
  */
 export function Timeline({ summary, onSelectNode, onClose }: Props) {
-  const { processes } = summary;
+  const { steps } = summary;
   return (
     <section className="timeline" aria-label="VSM zaman çizgisi" data-testid="zaman-cizgisi">
       <header>
         <strong>VSM zaman çizgisi</strong>
-        <span className="muted small">
-          Prosesler tuvaldeki soldan sağa sırayla · boş alan "—"
-        </span>
+        <span className="muted small">Stoklar ve prosesler tuvaldeki soldan sağa sırayla · boş alan "—"</span>
         <button type="button" className="icon" onClick={onClose} aria-label="Zaman çizgisini gizle" title="Gizle">
           ×
         </button>
       </header>
-      {processes.length === 0 ? (
-        <p className="muted small timeline-empty">Henüz VSM verisi girilmiş proses yok. Bir proses seçip sağ panelden veri girin.</p>
+      {steps.length === 0 ? (
+        <p className="muted small timeline-empty">
+          Henüz veri yok. Proseslere çevrim süresi, stok üçgenlerine stok miktarı girin.
+        </p>
       ) : (
         <div className="timeline-scroll">
           <table>
             <thead>
               <tr>
                 <th scope="row" className="row-head" />
-                {processes.map((p) => (
-                  <th key={p.id} scope="col">
-                    <button type="button" className="link" onClick={() => onSelectNode(p.id)} title="Prosesi seç">
-                      {p.title}
+                {steps.map((s) => (
+                  <th key={s.id} scope="col" className={`tl-col-${s.kind}`}>
+                    <button type="button" className="link" onClick={() => onSelectNode(s.id)} title="Şekli seç">
+                      {s.kind === 'inventory' ? `▲ ${s.title}` : s.title}
                     </button>
-                    {p.overTakt && <span className="tl-warn" title="Takt üstü"> ⚠</span>}
+                    {s.kind === 'process' && s.overTakt && <span className="tl-warn" title="Takt üstü"> ⚠</span>}
                   </th>
                 ))}
                 <th scope="col" className="tl-total-head">
@@ -48,33 +47,54 @@ export function Timeline({ summary, onSelectNode, onClose }: Props) {
               </tr>
             </thead>
             <tbody>
-              <tr className="tl-va">
+              <tr className="tl-wait">
                 <th scope="row" className="row-head">
-                  Değer katan
+                  Stokta bekleme
                 </th>
-                {processes.map((p) => (
-                  <td key={p.id}>{dur(p.vaSec)}</td>
+                {steps.map((s) => (
+                  <td key={s.id} className={s.kind === 'inventory' ? 'tl-on' : 'tl-off'}>
+                    {s.kind === 'inventory' && <WaitCell step={s} />}
+                  </td>
                 ))}
                 <td className="tl-total">
-                  VA = <span className="calc-value" data-testid="cizgi-va">{dur(summary.totalVa.value)}</span>
+                  Bekleme ={' '}
+                  <span className="calc-value" data-testid="cizgi-bekleme">
+                    {summary.waitDays.value === null ? '—' : formatDays(summary.waitDays.value)}
+                  </span>
                 </td>
               </tr>
-              <tr className="tl-nva">
+              <tr className="tl-process">
                 <th scope="row" className="row-head">
-                  Bekleme / katmayan
+                  İşlem süresi (C/T)
                 </th>
-                {processes.map((p) => (
-                  <td key={p.id}>{dur(p.nvaSec)}</td>
+                {steps.map((s) => (
+                  <td key={s.id} className={s.kind === 'process' ? 'tl-on' : 'tl-off'}>
+                    {s.kind === 'process' && (s.cycleSec === null ? '—' : formatDuration(s.cycleSec))}
+                  </td>
                 ))}
                 <td className="tl-total">
-                  NVA = <span className="calc-value" data-testid="cizgi-nva">{dur(summary.totalNva.value)}</span>
+                  İşlem ={' '}
+                  <span className="calc-value" data-testid="cizgi-islem">
+                    {summary.processingSec.value === null ? '—' : formatDuration(summary.processingSec.value)}
+                  </span>
                 </td>
               </tr>
               <tr className="tl-lead">
                 <th scope="row" className="row-head" />
-                <td colSpan={processes.length} />
+                <td colSpan={steps.length} />
                 <td className="tl-total">
-                  Lead time = <span className="calc-value" data-testid="cizgi-lt">{dur(summary.leadTime.value)}</span>
+                  Lead time ={' '}
+                  <span className="calc-value" data-testid="cizgi-lt">
+                    {summary.leadTimeDays === null ? '—' : formatDays(summary.leadTimeDays)}
+                  </span>
+                  {summary.valueAddedRatio !== null && (
+                    <>
+                      {' · '}Değer katma ={' '}
+                      <span className="calc-value" data-testid="cizgi-oran">
+                        {formatPercent(summary.valueAddedRatio)}
+                      </span>
+                    </>
+                  )}
                 </td>
               </tr>
             </tbody>
@@ -82,5 +102,16 @@ export function Timeline({ summary, onSelectNode, onClose }: Props) {
         </div>
       )}
     </section>
+  );
+}
+
+function WaitCell({ step }: { step: Extract<TimelineStep, { kind: 'inventory' }> }) {
+  if (step.days === null) return <span title={step.reason ?? undefined}>— ({formatQuantity(step.stock)})</span>;
+  return step.calculated ? (
+    <span title={`${formatQuantity(step.stock)} ÷ günlük talep`}>
+      <span className="calc-value">{formatDays(step.days)}</span>
+    </span>
+  ) : (
+    <>{formatDays(step.days)}</>
   );
 }

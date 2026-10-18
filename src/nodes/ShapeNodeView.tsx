@@ -3,8 +3,8 @@ import { Handle, NodeResizer, Position, type NodeProps, type NodeTypes } from '@
 import { VsmCanvasContext } from '../components/VsmCanvasContext';
 import { SHAPES, readableTextColor } from '../model/shapes';
 import { HANDLE_SIDES, SHAPE_KINDS, type HandleSide, type ShapeKind, type ShapeNode, type VsmData, type VsmQuantity } from '../model/types';
-import { isOverTakt } from '../model/vsmCalc';
-import { VSM_FIELDS, formatDuration, formatNumber, formatQuantity, hasVsmContent, toSeconds } from '../model/vsm';
+import { inventoryDays, isOverTakt } from '../model/vsmCalc';
+import { VSM_FIELDS, formatDays, formatDuration, formatNumber, formatQuantity, hasVsmContent, toSeconds } from '../model/vsm';
 
 const POSITIONS: Record<HandleSide, Position> = {
   top: Position.Top,
@@ -55,6 +55,7 @@ function ShapeNodeView({ type, data, selected }: NodeProps<ShapeNode>) {
           <div className="inventory-mark" aria-hidden="true">I</div>
           <div className="inventory-label">
             <div className="shape-title">{data.title.trim() || 'Stok'}</div>
+            {data.inventory && <InventoryInfo stock={data.inventory.stock} demand={demand} />}
             {data.description && <div className="shape-desc">{data.description}</div>}
           </div>
         </>
@@ -76,6 +77,22 @@ function ShapeNodeView({ type, data, selected }: NodeProps<ShapeNode>) {
       {HANDLE_SIDES.map((side) => (
         <Handle key={side} id={side} type="source" position={POSITIONS[side]} className="shape-handle" />
       ))}
+    </div>
+  );
+}
+
+/** Stok üçgeninin altında: girilen miktar ve (adetse) hesaplanan bekleme günü. */
+function InventoryInfo({ stock, demand }: { stock: VsmQuantity; demand: VsmQuantity }) {
+  if (stock.value === null) return null;
+  const wait = inventoryDays(stock, demand);
+  return (
+    <div className="inventory-stock" data-testid="stok-bilgisi">
+      <div>{formatQuantity(stock)}</div>
+      {wait.calculated && wait.days !== null && (
+        <div className="calc-value" title="Stok adedi ÷ günlük müşteri talebi">
+          {formatDays(wait.days)}
+        </div>
+      )}
     </div>
   );
 }

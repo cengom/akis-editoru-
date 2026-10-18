@@ -19,8 +19,11 @@ yalnızca biri olacak; uygulama bir VSM hesaplayıcısına dönüştürülmemeli
 - `src/model/vsm.ts` — VSM alan kataloğu (`VSM_FIELDS`: etiket, izinli birimler, kurallar), boş veri,
   sayı biçimlendirme/ayrıştırma ve VSM doğrulaması (`parseVsm`). Yeni VSM alanı: `types.ts` içindeki
   `VSM_FIELD_KEYS`'e ve bu kataloğa ekle; panel ve veri kutusu kataloğu okuyarak kendiliğinden gösterir.
-- `src/model/vsmCalc.ts` — VSM özet hesapları (takt, toplam VA/NVA/mesafe, lead time, takt üstü
-  prosesler). Saf fonksiyonlar; `null` toplama katılmaz, 0 katılır.
+- `src/model/vsmCalc.ts` — VSM özet hesapları, **klasik yöntem** (Rother & Shook): işlem süresi =
+  proseslerin C/T toplamı; bekleme = stok üçgenleri (adet ÷ günlük talep ya da doğrudan gün);
+  lead time = bekleme + işlem süresi (net çalışma süresiyle güne çevrilir); değer katma oranı;
+  takt üstü prosesler. Saf fonksiyonlar; `null` toplama katılmaz, 0 katılır. Proseslere ayrı
+  "değer katan/katmayan süre" ya da WIP alanı ekleme (sürüm 4'te bilinçli olarak kaldırıldı).
 - `src/model/edges.ts` — bağlantı türlerinin adları ve ok uçları. Çizim: `src/edges/FlowEdgeView.tsx` + CSS.
 - `src/components/MapPanel.tsx` (harita verileri + özet), `Timeline.tsx` (alt zaman çizgisi),
   `QuantityFields.tsx` (sayı + birim satırları; proses ve harita alanları ortak kullanır),
@@ -43,8 +46,9 @@ yalnızca biri olacak; uygulama bir VSM hesaplayıcısına dönüştürülmemeli
 - Bağlantılar `ConnectionMode.Loose` ile çalışır; her şeklin dört kenarında `top/right/bottom/left`
   kimlikli bağlantı noktası vardır. Kenar kimlikleri kayıtta saklanır.
 - Katman sırası: departman alanı (zIndex 0) < oklar (1) < diğer şekiller (2). Seçili ok öne çıkar.
-- JSON dosyası, yerel kayıt ve buluttaki `document_json` **aynı** formatı kullanır. Güncel sürüm 3;
-  sürüm 1 ve 2 de okunur. Buluttan gelen belge de `parseDocument` ile doğrulanır.
+- JSON dosyası, yerel kayıt ve buluttaki `document_json` **aynı** formatı kullanır. Güncel sürüm 4;
+  sürüm 1–3 de okunur (kaldırılan alanlar yok sayılır, kullanıcıya `warnings` ile bildirilir).
+- Stok verisi `data.inventory` (yalnızca `inventory` şekillerinde). Buluttan gelen belge de `parseDocument` ile doğrulanır.
 - İki kayıt modu: **yerel taslak** (`STORAGE_KEY`, otomatik) ve **bulut proje** (manuel "Kaydet").
   Bulut projesi açıkken yerel taslağa yazılmaz; kaydedilmemiş değişiklikler `CLOUD_BACKUP_KEY` yedeğine
   yazılır ve sayfa yenilenince o projeyle devam edilir. Çıkışta yedek silinir.

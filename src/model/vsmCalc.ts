@@ -1,9 +1,14 @@
-import type { ShapeNode, VsmMapData } from './types';
+import type { ShapeNode, VsmMapData, VsmQuantity } from './types';
 import { toSeconds } from './vsm';
 
 /*
- * VSM özet hesapları. Hepsi saf fonksiyonlardır; girdi değişmez.
- * Boş değer (`null`) hesaba katılmaz; 0 ise gerçek değer olarak toplanır.
+ * VSM özet hesapları (klasik yöntem, Rother & Shook "Learning to See"):
+ * - İşlem süresi: her prosesin çevrim süresi (C/T). Zaman çizgisinin alt basamakları.
+ * - Bekleme: prosesler arasındaki stok üçgenleri. Gün = stok adedi ÷ günlük müşteri talebi.
+ *   Zaman çizgisinin üst basamakları.
+ * - Lead time: bekleme günleri + işlem süresi (günlük net çalışma süresiyle güne çevrilir).
+ * - Değer katma oranı: işlem süresi ÷ lead time.
+ * Hepsi saf fonksiyonlardır. Boş değer (`null`) hesaba katılmaz; 0 ise gerçek değer olarak toplanır.
  */
 
 export interface TaktResult {
@@ -29,18 +34,45 @@ export function isOverTakt(cycleSeconds: number | null, taktSeconds: number | nu
   return cycleSeconds !== null && taktSeconds !== null && cycleSeconds > taktSeconds;
 }
 
-export interface ProcessCalc {
+export interface InventoryDays {
+  /** Bekleme günü; hesaplanamıyorsa `null`. */
+  days: number | null;
+  /** Gün, adetten talebe bölünerek mi hesaplandı (elle girilmedi)? */
+  calculated: boolean;
+  /** Hesaplanamama nedeni */
+  reason: string | null;
+}
+
+/** Stok üçgeninin bekleme günü: "gün" girildiyse o, "adet" girildiyse adet ÷ günlük talep. */
+export function inventoryDays(stock: VsmQuantity, demand: VsmQuantity): InventoryDays {
+  if (stock.value === null) return { days: null, calculated: false, reason: 'Stok girilmedi.' };
+  if (stock.unit === 'gün') return { days: stock.value, calculated: false, reason: null };
+  if (demand.value === null) return { days: null, calculated: true, reason: 'Gün hesabı için müşteri talebi gerekli.' };
+  if (demand.value === 0) return { days: null, calculated: true, reason: 'Müşteri talebi 0.' };
+  return { days: stock.value / demand.value, calculated: true, reason: null };
+}
+
+export interface ProcessStep {
+  kind: 'process';
   id: string;
   title: string;
   x: number;
   cycleSec: number | null;
-  vaSec: number | null;
-  nvaSec: number | null;
   distance: number | null;
   overTakt: boolean;
 }
 
-/** Toplam + kaç prosesin bu alanı doldurduğu. Hiçbiri doldurmadıysa `value` boştur. */
+export interface InventoryStep extends InventoryDays {
+  kind: 'inventory';
+  id: string;
+  title: string;
+  x: number;
+  stock: VsmQuantity;
+}
+
+export type TimelineStep = ProcessStep | InventoryStep;
+
+/** Toplam + kaç adımın bu değeri doldurduğu. Hiçbiri doldurmadıysa `value` boştur. */
 export interface Total {
   value: number | null;
   filled: number;
@@ -48,14 +80,26 @@ export interface Total {
 
 export interface VsmSummary {
   takt: TaktResult;
-  /** VSM verisi girilmiş prosesler, soldan sağa (x konumuna göre) sıralı. */
-  processes: ProcessCalc[];
-  totalVa: Total;
-  totalNva: Total;
-  /** Toplam değer katan + değer katmayan süre. */
-  leadTime: Total;
+  /** VSM verisi girilmiş prosesler, soldan sağa */
+  processes: ProcessStep[];
+  /** Stok verisi girilmiş üçgenler, soldan sağa */
+  inventories: InventoryStep[];
+  /** Zaman çizgisi: prosesler ve stoklar birlikte, tuvaldeki soldan sağa sırayla */
+  steps: TimelineStep[];
+  /** Toplam işlem süresi (saniye) = çevrim sürelerinin toplamı */
+  processingSec: Total;
+  /** Stoklarda toplam bekleme (gün) */
+  waitDays: Total;
+  /** Üretim lead time (gün) */
+  leadTimeDays: number | null;
+  /** İşlem süresi lead time'a eklendi mi (net çalışma süresi biliniyorsa)? */
+  leadTimeIncludesProcessing: boolean;
+  /** Değer katma oranı (0–1); hesaplanamıyorsa `null` */
+  valueAddedRatio: number | null;
   totalDistance: Total;
-  overTakt: ProcessCalc[];
+  overTakt: ProcessStep[];
+  /** Adet girilmiş ama talep olmadığı için günü hesaplanamayan stok sayısı */
+  inventoriesMissingDemand: number;
   netTimeOverDay: boolean;
 }
 
@@ -64,42 +108,69 @@ function sum(values: (number | null)[]): Total {
   return { value: filled.length ? filled.reduce((a, b) => a + b, 0) : null, filled: filled.length };
 }
 
+const byX = (a: { x: number }, b: { x: number }) => a.x - b.x;
+
 export function computeSummary(nodes: ShapeNode[], map: VsmMapData): VsmSummary {
   const takt = computeTakt(map);
-  const processes: ProcessCalc[] = nodes
+  const demand = map.fields.customerDemand;
+
+  const processes: ProcessStep[] = nodes
     .filter((n) => n.type === 'process' && n.data.vsm && Object.values(n.data.vsm.fields).some((q) => q.value !== null))
     .map((n) => {
       const f = n.data.vsm!.fields;
       const cycleSec = toSeconds(f.cycleTime);
       return {
+        kind: 'process' as const,
         id: n.id,
         title: n.data.title.trim() || 'Başlıksız',
         x: n.position.x,
         cycleSec,
-        vaSec: toSeconds(f.valueAddedTime),
-        nvaSec: toSeconds(f.nonValueAddedTime),
         distance: f.distance.value,
         overTakt: isOverTakt(cycleSec, takt.seconds),
       };
     })
-    .sort((a, b) => a.x - b.x);
+    .sort(byX);
 
-  const totalVa = sum(processes.map((p) => p.vaSec));
-  const totalNva = sum(processes.map((p) => p.nvaSec));
-  const leadTime: Total =
-    totalVa.value === null && totalNva.value === null
-      ? { value: null, filled: 0 }
-      : { value: (totalVa.value ?? 0) + (totalNva.value ?? 0), filled: Math.max(totalVa.filled, totalNva.filled) };
-  const net = toSeconds(map.fields.netWorkingTime);
+  const inventories: InventoryStep[] = nodes
+    .filter((n) => n.type === 'inventory' && n.data.inventory && n.data.inventory.stock.value !== null)
+    .map((n) => ({
+      kind: 'inventory' as const,
+      id: n.id,
+      title: n.data.title.trim() || 'Stok',
+      x: n.position.x,
+      stock: n.data.inventory!.stock,
+      ...inventoryDays(n.data.inventory!.stock, demand),
+    }))
+    .sort(byX);
+
+  const processingSec = sum(processes.map((p) => p.cycleSec));
+  const waitDays = sum(inventories.map((i) => i.days));
+  const daySec = toSeconds(map.fields.netWorkingTime);
+  const usableDay = daySec !== null && daySec > 0 ? daySec : null;
+
+  // İşlem süresi ancak günlük net çalışma süresi biliniyorsa güne çevrilip eklenebilir.
+  const processingDays = usableDay && processingSec.value !== null ? processingSec.value / usableDay : null;
+  const leadTimeDays =
+    waitDays.value === null && processingDays === null ? null : (waitDays.value ?? 0) + (processingDays ?? 0);
+  const leadTimeIncludesProcessing = usableDay !== null && processingSec.value !== null;
+  const valueAddedRatio =
+    usableDay && processingSec.value !== null && leadTimeDays !== null && leadTimeDays > 0
+      ? processingSec.value / (leadTimeDays * usableDay)
+      : null;
 
   return {
     takt,
     processes,
-    totalVa,
-    totalNva,
-    leadTime,
+    inventories,
+    steps: [...processes, ...inventories].sort(byX),
+    processingSec,
+    waitDays,
+    leadTimeDays,
+    leadTimeIncludesProcessing,
+    valueAddedRatio,
     totalDistance: sum(processes.map((p) => p.distance)),
     overTakt: processes.filter((p) => p.overTakt),
-    netTimeOverDay: net !== null && net > 24 * 3600,
+    inventoriesMissingDemand: inventories.filter((i) => i.days === null).length,
+    netTimeOverDay: daySec !== null && daySec > 24 * 3600,
   };
 }

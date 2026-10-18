@@ -42,6 +42,12 @@ function vsm(fields: Partial<Record<VsmFieldKey, [number, VsmQuantity['unit']]>>
   return data;
 }
 
+/** Stok üçgeni; miktar adet ya da gün olarak. */
+function inventory(id: string, x: number, y: number, title: string, value: number, unit: 'adet' | 'gün', size?: [number, number]): StoredNode {
+  const stored = node(id, 'inventory', x, y, title, '', size);
+  return { ...stored, data: { ...stored.data, inventory: { stock: { value, unit } } } };
+}
+
 function withVsm(stored: StoredNode, data: VsmData): StoredNode {
   return { ...stored, data: { ...stored.data, vsm: data } };
 }
@@ -92,8 +98,6 @@ export function createExampleDocument(): DiagramDocument {
           changeoverTime: [30, 'dk'],
           uptime: [92, '%'],
           operators: [1, 'kişi'],
-          wip: [120, 'adet'],
-          valueAddedTime: [40, 'sn'],
           distance: [15, 'm'],
         }),
       ),
@@ -104,9 +108,6 @@ export function createExampleDocument(): DiagramDocument {
           changeoverTime: [10, 'dk'],
           uptime: [98, '%'],
           operators: [2, 'kişi'],
-          wip: [1.5, 'gün'],
-          valueAddedTime: [75, 'sn'],
-          nonValueAddedTime: [4, 'saat'],
           distance: [8, 'm'],
         }),
       ),
@@ -121,9 +122,6 @@ export function createExampleDocument(): DiagramDocument {
             changeoverTime: [5, 'dk'],
             uptime: [99, '%'],
             operators: [1, 'kişi'],
-            wip: [300, 'adet'],
-            valueAddedTime: [25, 'sn'],
-            nonValueAddedTime: [0, 'sn'],
             distance: [25, 'm'],
           },
           'Değerler örnektir.',
@@ -143,8 +141,11 @@ export function createExampleDocument(): DiagramDocument {
       node('tedarikci', 'supplier', -30, -360, 'Örnek Tedarikçi', 'Hammadde'),
       node('musteri', 'customer', 1940, -360, 'Örnek Müşteri'),
       node('planlama', 'process', 820, -280, 'Üretim planlama', 'MRP'),
-      node('stok-hammadde', 'inventory', 10, -150, 'Hammadde', '2 gün'),
-      node('stok-mamul', 'inventory', 1980, -150, 'Mamul', '300 adet'),
+      inventory('stok-hammadde', 10, -150, 'Hammadde', 2, 'gün'),
+      inventory('stok-mamul', 1980, -150, 'Mamul', 300, 'adet'),
+      // Prosesler arası stoklar (WIP): zaman çizgisinde bekleme olarak görünür
+      inventory('stok-kesim', 895, 150, 'WIP', 120, 'adet', [50, 45]),
+      inventory('stok-montaj', 1135, 150, 'WIP', 1.5, 'gün', [50, 45]),
       node('kaizen-1', 'kaizen', 990, -175, 'Montaj çevrimini düşür'),
     ],
     edges: [

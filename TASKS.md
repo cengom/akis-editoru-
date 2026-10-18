@@ -51,6 +51,14 @@
 - [x] Oturum kaybolursa kaydedilmemiş değişiklikleri ayrıca saklama ve yerel taslak olarak geri açma
 - [x] Geliştirme için sahte bulut arka ucu (`npm run dev:sahte-bulut`)
 
+## Tamamlananlar (5. aşama: klasik VSM yöntemine düzeltme)
+
+- [x] İşlem süresi = çevrim süresi (C/T); proseslerdeki "değer katan/katmayan süre" ve "WIP" alanları kaldırıldı
+- [x] Stok üçgenine sayısal stok (adet ya da gün); adetten bekleme günü = adet ÷ günlük talep
+- [x] Zaman çizgisi merdiveni: üstte stok bekleme günleri, altta C/T; toplam bekleme, işlem süresi, lead time, değer katma oranı
+- [x] Kayıt formatı sürüm 4; eski dosyalar açılıyor, kaldırılan değerler için kullanıcıya not
+- [x] Örnek haritada prosesler arası WIP üçgenleri
+
 ## Bekleyen (kullanıcı tarafı)
 
 - [ ] Supabase projesi oluşturma, SQL'i çalıştırma, anonim girişi açma, `.env.local` doldurma (README)
@@ -63,7 +71,6 @@
 - [ ] Vercel veya Cloudflare Pages'e yayın (kullanıcı onayıyla)
 - [ ] İsteğe bağlı: bulut projesinde otomatik kaydetme seçeneği
 
-- [ ] Stok üçgenlerine sayısal miktar / bekleme süresi alanları ve bunların lead time'a katılması
 - [ ] Diğer VSM sembolleri: elektronik bilgi akışı (zikzak), kanban, süpermarket, FIFO şeridi, operatör, kamyon
 - [ ] Zaman çizgisini tuval koordinatlarında (çizimle birlikte yakınlaşan) seçenek olarak sunmak
 - [ ] Vardiya başına net süre girişi (günlük toplamı otomatik hesaplama)

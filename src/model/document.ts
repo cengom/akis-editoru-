@@ -1,10 +1,21 @@
 import { SHAPES, zIndexFor } from './shapes';
 import { EDGE_KIND_SPECS } from './edges';
-import { cloneVsm, cloneVsmMap, emptyVsm, emptyVsmMap, parseVsm, parseVsmMap } from './vsm';
+import {
+  cloneInventory,
+  cloneVsm,
+  cloneVsmMap,
+  emptyInventory,
+  emptyVsm,
+  emptyVsmMap,
+  parseInventory,
+  parseVsm,
+  parseVsmMap,
+} from './vsm';
 import {
   APP_ID,
   EDGE_KINDS,
   HANDLE_SIDES,
+  REMOVED_VSM_FIELD_KEYS,
   SCHEMA_VERSION,
   SHAPE_KINDS,
   SUPPORTED_SCHEMA_VERSIONS,
@@ -91,6 +102,7 @@ export function toDocument(
 function copyData(kind: ShapeKind, data: ShapeData): ShapeData {
   const base: ShapeData = { title: data.title, description: data.description, color: data.color };
   if (kind === 'process') base.vsm = data.vsm ? cloneVsm(data.vsm) : emptyVsm();
+  if (kind === 'inventory') base.inventory = data.inventory ? cloneInventory(data.inventory) : emptyInventory();
   return base;
 }
 
@@ -130,7 +142,21 @@ export function fromDocument(doc: DiagramDocument): { nodes: ShapeNode[]; edges:
 
 /* ---------- Doğrulama ---------- */
 
-export type ParseResult = { ok: true; doc: DiagramDocument } | { ok: false; errors: string[] };
+/**
+ * `warnings`: dosya açılabildi ama bir şey bilinçli olarak atıldı (ör. sürüm 4'te kaldırılan alanlar).
+ * Kullanıcıya gösterilmelidir.
+ */
+export type ParseResult = { ok: true; doc: DiagramDocument; warnings: string[] } | { ok: false; errors: string[] };
+
+/** Eski sürüm proses verisinde, artık kullanılmayan alanlara değer girilmiş mi? */
+function hasRemovedVsmValues(rawVsm: unknown): boolean {
+  if (!isObject(rawVsm) || !isObject(rawVsm.fields)) return false;
+  const fields = rawVsm.fields;
+  return REMOVED_VSM_FIELD_KEYS.some((k) => {
+    const f = fields[k];
+    return isObject(f) && f.value !== null && f.value !== undefined && f.value !== '';
+  });
+}
 
 function isObject(v: unknown): v is Record<string, unknown> {
   return typeof v === 'object' && v !== null && !Array.isArray(v);
@@ -203,6 +229,7 @@ export function parseDocument(raw: unknown): ParseResult {
   if (rawEdges.length > LIMITS.edges) fail(`Çok fazla bağlantı var (en fazla ${LIMITS.edges}).`);
   if (errors.length) return { ok: false, errors };
 
+  let removedValueCount = 0;
   const nodes: StoredNode[] = [];
   const nodeIds = new Set<string>();
   rawNodes.forEach((n, i) => {
@@ -226,6 +253,12 @@ export function parseDocument(raw: unknown): ParseResult {
       const vsm = parseVsm(d.vsm, where, fail);
       if (!vsm) return;
       data.vsm = vsm;
+      if (hasRemovedVsmValues(d.vsm)) removedValueCount++;
+    }
+    if (n.kind === 'inventory') {
+      const inventory = parseInventory(d.inventory, where, fail);
+      if (!inventory) return;
+      data.inventory = inventory;
     }
     nodeIds.add(n.id);
     nodes.push({
@@ -261,8 +294,16 @@ export function parseDocument(raw: unknown): ParseResult {
   });
 
   if (errors.length) return { ok: false, errors };
+  const warnings: string[] = [];
+  if (removedValueCount > 0) {
+    warnings.push(
+      `${removedValueCount} proseste eski "WIP / stok", "değer katan süre" ya da "değer katmayan süre" değerleri vardı. ` +
+        'Klasik VSM yönteminde işlem süresi çevrim süresi (C/T), bekleme ise stok üçgenlerinden geldiği için bu alanlar kaldırıldı; değerler kullanılmadı.',
+    );
+  }
   return {
     ok: true,
+    warnings,
     doc: {
       app: APP_ID,
       schemaVersion: SCHEMA_VERSION,

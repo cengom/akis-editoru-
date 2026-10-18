@@ -1,6 +1,6 @@
 import type { VsmMapData } from '../model/types';
 import type { Total, VsmSummary } from '../model/vsmCalc';
-import { VSM_MAP_FIELDS, formatDuration, formatNumber } from '../model/vsm';
+import { VSM_MAP_FIELDS, formatDays, formatDuration, formatNumber, formatPercent } from '../model/vsm';
 import { QuantityTable } from './QuantityFields';
 
 interface Props {
@@ -54,17 +54,33 @@ export function MapPanel({ vsmMap, summary, onChange, onSelectNode }: Props) {
               <span className="muted small">{summary.takt.reason}</span>
             )}
           </dd>
-          <dt>Toplam değer katan süre</dt>
+          <dt>Toplam işlem süresi (∑ C/T)</dt>
           <dd>
-            <TotalValue total={summary.totalVa} count={summary.processes.length} format={formatDuration} testId="ozet-va" />
+            <TotalValue total={summary.processingSec} count={summary.processes.length} format={formatDuration} testId="ozet-islem" />
           </dd>
-          <dt>Toplam değer katmayan süre</dt>
+          <dt>Stokta bekleme (∑ gün)</dt>
           <dd>
-            <TotalValue total={summary.totalNva} count={summary.processes.length} format={formatDuration} testId="ozet-nva" />
+            <TotalValue total={summary.waitDays} count={summary.inventories.length} format={formatDays} testId="ozet-bekleme" />
           </dd>
-          <dt>Toplam süre (lead time)</dt>
+          <dt>Üretim lead time</dt>
           <dd>
-            <TotalValue total={summary.leadTime} count={summary.processes.length} format={formatDuration} testId="ozet-lt" />
+            {summary.leadTimeDays === null ? (
+              <span className="muted small">Veri yok</span>
+            ) : (
+              <span className="calc-value" data-testid="ozet-lt">
+                {formatDays(summary.leadTimeDays)}
+              </span>
+            )}
+          </dd>
+          <dt>Değer katma oranı</dt>
+          <dd>
+            {summary.valueAddedRatio === null ? (
+              <span className="muted small">{summary.leadTimeDays === null ? 'Veri yok' : 'Net çalışma süresi gerekli'}</span>
+            ) : (
+              <span className="calc-value" data-testid="ozet-oran">
+                {formatPercent(summary.valueAddedRatio)}
+              </span>
+            )}
           </dd>
           <dt>Toplam mesafe</dt>
           <dd>
@@ -76,6 +92,15 @@ export function MapPanel({ vsmMap, summary, onChange, onSelectNode }: Props) {
             />
           </dd>
         </dl>
+        {summary.inventoriesMissingDemand > 0 && (
+          <p className="warning-box">
+            {summary.inventoriesMissingDemand} stok üçgeninde miktar adet olarak girildi ama müşteri talebi yok; bekleme
+            günü hesaplanamadı. Müşteri talebini girin ya da stoğu gün olarak yazın.
+          </p>
+        )}
+        {summary.leadTimeDays !== null && !summary.leadTimeIncludesProcessing && summary.processingSec.value !== null && (
+          <p className="muted small">Lead time'a işlem süresi eklenmedi: güne çevirmek için net çalışma süresi gerekli.</p>
+        )}
         {summary.netTimeOverDay && <p className="warning-box">Net çalışma süresi bir günü (24 saat) aşıyor.</p>}
         {summary.overTakt.length > 0 && (
           <div className="warning-box" role="alert" data-testid="takt-uyarilari">
@@ -93,8 +118,8 @@ export function MapPanel({ vsmMap, summary, onChange, onSelectNode }: Props) {
           </div>
         )}
         <p className="muted small">
-          Hesaplar, VSM verisi girilmiş {summary.processes.length} prosesten yapılır. Boş alanlar toplama katılmaz; 0
-          katılır.
+          Klasik VSM yöntemi: işlem süresi proseslerin çevrim süresidir (C/T); bekleme stok üçgenlerinden gelir (adet ÷
+          günlük talep). Lead time = bekleme + işlem süresi. Boş alanlar toplama katılmaz; 0 katılır.
         </p>
       </section>
     </div>

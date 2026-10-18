@@ -104,8 +104,8 @@ Uygulama tek sayfalık statik bir sitedir; sunucu kodu yoktur.
 - **Bağlamak:** Fareyi şeklin üzerine getirin, kenarlarda beliren noktadan başka bir şeklin noktasına sürükleyin.
 - **Düzenlemek:** Bir şekle tıklayın; sağ panelden başlık, açıklama ve renk değiştirin.
 - **VSM verileri (yalnızca Proses):** Bir proses seçince sağ panelde "VSM verileri" bölümü açılır:
-  çevrim süresi, setup/değişim, uptime (%), operatör sayısı ve "Gelişmiş alanlar" altında WIP/stok,
-  değer katan/katmayan süre, mesafe (m) ve not. Süreler sn/dk/saat, WIP adet/gün olarak seçilebilir.
+  çevrim süresi (C/T), setup/değişim, uptime (%), operatör sayısı ve "Gelişmiş alanlar" altında mesafe
+  (m) ve not. Süreler sn/dk/saat olarak seçilebilir.
   Ondalık için virgül ya da nokta yazabilirsiniz. Boş bırakılan alan "veri yok" demektir; 0 ise gerçek
   bir değerdir. Girilen değerler prosesin altındaki veri kutusunda görünür; kutu prosesle birlikte
   taşınır ve "Veri kutusunu tuvalde göster" ile gizlenebilir.
@@ -113,17 +113,22 @@ Uygulama tek sayfalık statik bir sitedir; sunucu kodu yoktur.
 - **VSM genel verileri ve özet:** Boş bir yere tıklayın (ya da üstteki "VSM verileri / özet" düğmesine
   basın). Sağ panelde müşteri talebi (adet/gün), net çalışma süresi (dk/gün veya sn/gün; günlük toplam),
   vardiya sayısı, sevkiyat sıklığı ve isteğe bağlı pitch girilir. Altındaki **VSM özeti** otomatik
-  hesaplanır: takt süresi (net süre ÷ talep), toplam değer katan / katmayan süre, lead time (ikisinin
-  toplamı) ve toplam mesafe. Çevrim süresi takt'tan büyük prosesler kırmızı "Takt üstü" ile işaretlenir.
+  hesaplanır (klasik VSM yöntemi): takt süresi (net süre ÷ talep), toplam işlem süresi (proseslerin
+  çevrim sürelerinin toplamı), stokta bekleme (stok üçgenlerinin gün toplamı), üretim lead time
+  (bekleme + işlem süresi), değer katma oranı (işlem süresi ÷ lead time) ve toplam mesafe. Çevrim süresi takt'tan büyük prosesler kırmızı "Takt üstü" ile işaretlenir.
   **Hesaplanan değerler mavi italik ve ∑ işaretlidir**; elle girilen değerler normal yazılır.
 - **VSM sembolleri:** Paletteki "VSM" grubunda Müşteri, Tedarikçi (fabrika simgesi), Stok / envanter
   (üçgen) ve Kaizen patlaması var. Müşteri simgesi harita talebini ve hesaplanan takt'ı gösterir.
+- **Stok (üçgen):** Stok üçgenini seçip sağ panelden stok miktarını **adet** ya da doğrudan **gün**
+  olarak girin. Adet girilirse bekleme günü = adet ÷ günlük müşteri talebi olarak hesaplanır ve
+  üçgenin altında görünür. Stok, prosesin içine değil prosesler arasına üçgen olarak çizilir.
 - **Ok türleri:** Paletteki "Yeni ok türü" ile sıradaki okların türünü seçin: Genel ok, Bilgi akışı (mavi
   kesikli), Malzeme akışı / itme (kalın çizgili), Sevkiyat (kalın boş). Var olan bir okun türü, ok
   seçilince sağ panelden değiştirilebilir.
-- **Zaman çizgisi:** "Tuvalin altında zaman çizgisini göster" ile açılır. VSM verisi girilmiş prosesler
-  tuvaldeki soldan sağa sırasıyla listelenir; üst satır değer katan, alt satır bekleme / değer katmayan
-  süredir; sağda toplam VA, NVA ve lead time hesaplanır. Proses adına tıklamak onu seçer.
+- **Zaman çizgisi:** "Tuvalin altında zaman çizgisini göster" ile açılır. Stok üçgenleri ve prosesler
+  tuvaldeki soldan sağa sırasıyla dizilir (merdiven): **üst basamak stokta bekleme (gün)**, **alt
+  basamak prosesin çevrim süresi (C/T)**. Sağda toplam bekleme, toplam işlem süresi, lead time ve değer
+  katma oranı hesaplanır. Ada tıklamak o şekli seçer.
 - **Silmek:** Seçip `Delete`/`Backspace` tuşuna basın ya da "Seçileni sil" düğmesini kullanın.
 - **Gezinmek:** Boş alanı sürükleyerek kaydırın, fare tekerleğiyle yakınlaştırın; "Sığdır" tüm çizimi ekrana sığdırır.
 - **Kaydetmek (yerel taslak):** Çizim otomatik olarak **yalnızca bu tarayıcıya** kaydedilir.
@@ -149,7 +154,7 @@ JSON dosyası ve tarayıcı kaydı aynı biçimdedir (`src/model/types.ts`):
 ```json
 {
   "app": "akis-editoru",
-  "schemaVersion": 3,
+  "schemaVersion": 4,
   "name": "Diyagram adı",
   "savedAt": "2026-10-15T20:00:00.000Z",
   "viewport": { "x": 0, "y": 0, "zoom": 1 },
@@ -173,9 +178,6 @@ JSON dosyası ve tarayıcı kaydı aynı biçimdedir (`src/model/types.ts`):
             "changeoverTime": { "value": 30, "unit": "dk" },
             "uptime": { "value": 92, "unit": "%" },
             "operators": { "value": 1, "unit": "kişi" },
-            "wip": { "value": 120, "unit": "adet" },
-            "valueAddedTime": { "value": 40, "unit": "sn" },
-            "nonValueAddedTime": { "value": null, "unit": "dk" },
             "distance": { "value": 15, "unit": "m" }
           },
           "note": ""
@@ -188,11 +190,17 @@ JSON dosyası ve tarayıcı kaydı aynı biçimdedir (`src/model/types.ts`):
 }
 ```
 
-`vsm` alanı yalnızca `process` şekillerinde bulunur; `value: null` boş alan demektir.
+`vsm` alanı yalnızca `process` şekillerinde bulunur; `value: null` boş alan demektir. Stok üçgenleri
+(`inventory`) `"inventory": { "stock": { "value": 120, "unit": "adet" } }` taşır (birim `adet` ya da `gün`).
 Şekil türleri (`kind`): `terminal`, `process`, `decision`, `department`, `note`, `customer`, `supplier`,
 `inventory`, `kaizen`. Bağlantı türleri (`kind`): `flow`, `info`, `material`, `shipment`.
 
-**Geriye uyumluluk:** Sürüm 1 ve 2 dosyaları açılmaya devam eder: prosesler boş VSM verisiyle, harita
+**Sürüm 4 değişikliği:** Klasik VSM yöntemine geçildi. Proseslerdeki "WIP / stok", "değer katan süre"
+ve "değer katmayan süre" alanları kaldırıldı. İşlem süresi artık çevrim süresidir; bekleme stok
+üçgenlerinden gelir. Eski dosyalarda bu alanlara girilmiş değerler açılışta kullanılmaz; uygulama bunu
+bir notla bildirir.
+
+**Geriye uyumluluk:** Sürüm 1, 2 ve 3 dosyaları açılmaya devam eder: prosesler boş VSM verisiyle, harita
 verisi boş olarak, oklar "genel ok" olarak gelir. Sürüm 3'te `vsmMap` alanlarının bir kısmı eksikse
 eksikler boş kabul edilir. Sürüm 2 dosyalarında eksik VSM alanları boş kabul edilir, `"12,5"` gibi metin
 olarak yazılmış sayılar sayıya çevrilir, proses olmayan şekillerdeki VSM verisi yok sayılır.
@@ -214,8 +222,9 @@ var olan şekillere gitmesi, boyut sınırları). Hatalı dosya yüklenirse hata
 - Ok güzergâhları otomatiktir; elle büküm noktası eklenemez.
 - Departman şekli yalnızca görsel bir alandır; içindeki kutular onunla birlikte taşınmaz (gruplama yok).
 - Görsel (PNG/SVG/PDF) çıktı ve yazdırma yok.
-- Hesaplar yalnızca proseslere girilen değerlerden yapılır: stok üçgenlerindeki miktar/süre şimdilik
-  serbest metindir ve lead time'a katılmaz. Lead time = toplam değer katan + toplam değer katmayan süre.
+- Lead time'a işlem süresinin eklenmesi için net çalışma süresi gerekir (saniyeleri güne çevirmek için).
+  Stok günü adetten hesaplanacaksa müşteri talebi gerekir.
+- Zaman çizgisindeki sıra, şekillerin tuvaldeki yatay konumuna göredir; oklar sırayı belirlemez.
 - Net çalışma süresi günlük toplam olarak girilir; vardiya sayısı yalnızca bilgi amaçlıdır, hesaba girmez.
 - Zaman çizgisi tuvalin altına sabitlenmiş bir şerittir; çizimle birlikte yakınlaşmaz ve çizimin alt
   kısmını örtebilir (kapatılabilir). "Sığdır" onu hesaba katmaz.

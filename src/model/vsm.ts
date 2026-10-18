@@ -2,6 +2,7 @@ import {
   TIME_UNITS,
   VSM_FIELD_KEYS,
   VSM_MAP_FIELD_KEYS,
+  type InventoryData,
   type VsmData,
   type VsmFieldKey,
   type VsmMapData,
@@ -33,14 +34,33 @@ export type VsmMapFieldSpec = QuantitySpec<VsmMapFieldKey>;
 /* ---------- Proses alanları ---------- */
 
 export const VSM_FIELDS: readonly VsmFieldSpec[] = [
-  { key: 'cycleTime', label: 'Çevrim süresi', short: 'Çevrim (C/T)', units: TIME_UNITS, defaultUnit: 'sn', advanced: false },
+  {
+    key: 'cycleTime',
+    label: 'Çevrim süresi (C/T)',
+    short: 'Çevrim (C/T)',
+    units: TIME_UNITS,
+    defaultUnit: 'sn',
+    advanced: false,
+    hint: 'Zaman çizgisinde işlem süresi olarak kullanılır.',
+  },
   { key: 'changeoverTime', label: 'Setup / değişim', short: 'Setup (C/O)', units: TIME_UNITS, defaultUnit: 'dk', advanced: false },
   { key: 'uptime', label: 'Uptime', short: 'Uptime', units: ['%'], defaultUnit: '%', max: 100, advanced: false },
   { key: 'operators', label: 'Operatör sayısı', short: 'Operatör', units: ['kişi'], defaultUnit: 'kişi', integer: true, advanced: false },
-  { key: 'wip', label: 'WIP / stok', short: 'WIP / stok', units: ['adet', 'gün'], defaultUnit: 'adet', advanced: true },
-  { key: 'valueAddedTime', label: 'Değer katan süre', short: 'Değer katan', units: TIME_UNITS, defaultUnit: 'sn', advanced: true },
-  { key: 'nonValueAddedTime', label: 'Değer katmayan süre', short: 'Değer katmayan', units: TIME_UNITS, defaultUnit: 'dk', advanced: true },
   { key: 'distance', label: 'Mesafe', short: 'Mesafe', units: ['m'], defaultUnit: 'm', advanced: true },
+];
+
+/* ---------- Stok üçgeni ---------- */
+
+export const INVENTORY_FIELDS: readonly QuantitySpec<'stock'>[] = [
+  {
+    key: 'stock',
+    label: 'Stok',
+    short: 'Stok',
+    units: ['adet', 'gün'],
+    defaultUnit: 'adet',
+    advanced: false,
+    hint: 'Adet girilirse bekleme günü müşteri talebinden hesaplanır.',
+  },
 ];
 
 export const VSM_FIELD_SPECS = Object.fromEntries(VSM_FIELDS.map((f) => [f.key, f])) as Record<VsmFieldKey, VsmFieldSpec>;
@@ -91,6 +111,15 @@ export function emptyVsm(): VsmData {
 /** Yeni bir harita için boş genel VSM verisi. */
 export function emptyVsmMap(): VsmMapData {
   return { fields: emptyFields(VSM_MAP_FIELDS), showTimeline: false };
+}
+
+/** Yeni bir stok üçgeni için boş veri. */
+export function emptyInventory(): InventoryData {
+  return { stock: { value: null, unit: 'adet' } };
+}
+
+export function cloneInventory(inv: InventoryData): InventoryData {
+  return { stock: { ...inv.stock } };
 }
 
 export function cloneVsm(vsm: VsmData): VsmData {
@@ -166,6 +195,16 @@ export function formatDuration(seconds: number): string {
   if (seconds < 120) return `${formatNumber(seconds, 2)} sn`;
   if (seconds < 7200) return `${formatNumber(seconds / 60, 2)} dk`;
   return `${formatNumber(seconds / 3600, 2)} saat`;
+}
+
+export function formatDays(days: number): string {
+  return `${formatNumber(days, 2)} gün`;
+}
+
+/** Oranı yüzde olarak yazar; çok küçük oranlarda daha fazla basamak gösterir. */
+export function formatPercent(ratio: number): string {
+  const pct = ratio * 100;
+  return `%${formatNumber(pct, pct < 1 ? 3 : 1)}`;
 }
 
 /* ---------- Dosyadan okuma (doğrulama) ---------- */
@@ -268,4 +307,15 @@ export function parseVsmMap(raw: unknown, fail: Fail): VsmMapData | null {
   if (!fields) return null;
   result.fields = fields;
   return result;
+}
+
+/** Stok üçgeninin verisini okur. Eski sürümlerde yoktur; boş kabul edilir. */
+export function parseInventory(raw: unknown, where: string, fail: Fail): InventoryData | null {
+  if (raw === undefined || raw === null) return emptyInventory();
+  if (!isPlainObject(raw)) {
+    fail(`${where}: stok verisi geçersiz.`);
+    return null;
+  }
+  const fields = parseQuantityFields(raw, INVENTORY_FIELDS, where, fail);
+  return fields ? { stock: fields.stock } : null;
 }
