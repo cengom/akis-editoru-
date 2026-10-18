@@ -469,6 +469,8 @@ details.help { margin-bottom: 12px; }
 .tc-takt span {
   position: absolute;
   top: 0;
+  background: var(--panel);
+  padding: 0 3px;
   left: 4px;
   font-size: 11px;
   font-weight: 600;
@@ -477,8 +479,8 @@ details.help { margin-bottom: 12px; }
 }
 .tc-row {
   display: grid;
-  grid-template-columns: 1fr auto;
-  grid-template-areas: 'label value' 'track track';
+  grid-template-columns: 1fr;
+  grid-template-areas: 'label' 'track' 'value';
   gap: 2px 6px;
   border: none;
   background: none;
@@ -487,8 +489,8 @@ details.help { margin-bottom: 12px; }
   border-radius: 4px;
 }
 .tc-row:hover { background: #f8fafc; }
-.tc-label { grid-area: label; font-size: 12px; color: #111827; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.tc-value { grid-area: value; font-size: 12px; color: #374151; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.tc-label { grid-area: label; justify-self: start; position: relative; z-index: 2; background: var(--panel); padding-right: 4px; font-size: 12px; color: #111827; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tc-value { grid-area: value; justify-self: start; position: relative; z-index: 2; background: var(--panel); padding-right: 4px; font-size: 11px; color: #374151; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .tc-track { grid-area: track; position: relative; height: 12px; background: #f1f5f9; border-radius: 4px; }
 .tc-bar, .tc-loss { position: absolute; top: 0; bottom: 0; }
 .tc-bar { left: 0; background: #3b82f6; border-radius: 4px 0 0 4px; }
@@ -508,3 +510,23 @@ details.help { margin-bottom: 12px; }
 .tc-key-loss { background: repeating-linear-gradient(45deg, #bfdbfe 0 3px, #eff6ff 3px 6px); }
 .tc-key-takt { width: 0; height: 10px; border-left: 2px dashed #111827; border-radius: 0; }
 .tc-key-over { background: #dc2626; }
+.react-flow__edge-path.edge-electronic { stroke: #2563eb; stroke-width: 1.5; stroke-linejoin: round; }
+.react-flow__edge-path.edge-pull { stroke: #374151; stroke-width: 3; }
+.react-flow__edge.selected .react-flow__edge-path.edge-electronic,
+.react-flow__edge.selected .react-flow__edge-path.edge-pull { stroke: var(--accent); }
+
+/* ---------- Simge olarak çizilen VSM şekilleri ---------- */
+.shape-symbol .symbol-svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.shape-symbol.is-selected { box-shadow: none !important; outline: 2px dashed var(--accent); outline-offset: 2px; }
+.shape-control {
+  background: var(--shape-color);
+  border: 4px double #374151;
+  border-radius: 2px;
+}
+.palette ul.palette-compact { grid-template-columns: 1fr 1fr; gap: 4px; }
+.palette-compact .palette-item { flex-direction: column; gap: 2px; padding: 6px 4px; text-align: center; font-size: 11px; line-height: 1.2; }
+.palette-compact .palette-item strong { font-weight: 600; }
+.palette-compact .palette-icon { width: 40px; height: 26px; }
+.mini-dl { display: grid; grid-template-columns: 1fr auto; gap: 4px 8px; margin: 0; font-size: 13px; }
+.mini-dl dd { margin: 0; text-align: right; }
+.vsm-section h3 + .vsm-table, .vsm-section > h3 { margin-top: 2px; }

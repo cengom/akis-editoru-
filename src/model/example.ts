@@ -1,11 +1,13 @@
 import { SHAPES } from './shapes';
-import { emptyVsm, emptyVsmMap } from './vsm';
+import { emptyInventory, emptyVsm, emptyVsmMap } from './vsm';
 import {
   APP_ID,
   SCHEMA_VERSION,
   type DiagramDocument,
   type EdgeKind,
   type HandleSide,
+  type InventoryData,
+  type StockKind,
   type ShapeKind,
   type StoredEdge,
   type StoredNode,
@@ -42,10 +44,20 @@ function vsm(fields: Partial<Record<VsmFieldKey, [number, VsmQuantity['unit']]>>
   return data;
 }
 
-/** Stok üçgeni; miktar adet ya da gün olarak. */
-function inventory(id: string, x: number, y: number, title: string, value: number, unit: 'adet' | 'gün', size?: [number, number]): StoredNode {
-  const stored = node(id, 'inventory', x, y, title, '', size);
-  return { ...stored, data: { ...stored.data, inventory: { stock: { value, unit } } } };
+/** Stok tutan şekil (varsayılan: stok üçgeni); miktar adet ya da gün olarak. */
+function inventory(
+  id: string,
+  x: number,
+  y: number,
+  title: string,
+  value: number,
+  unit: 'adet' | 'gün',
+  size?: [number, number],
+  kind: StockKind = 'inventory',
+  extra: Partial<InventoryData> = {},
+): StoredNode {
+  const stored = node(id, kind, x, y, title, '', size);
+  return { ...stored, data: { ...stored.data, inventory: { ...emptyInventory(), stock: { value, unit }, ...extra } } };
 }
 
 function withVsm(stored: StoredNode, data: VsmData): StoredNode {

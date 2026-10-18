@@ -1,6 +1,9 @@
 import type { TimelineStep, VsmSummary } from '../model/vsmCalc';
 import { formatDays, formatDuration, formatPercent, formatQuantity } from '../model/vsm';
 
+/** Zaman çizgisinde stok türünü gösteren kısa işaret */
+const STOCK_PREFIX: Record<string, string> = { inventory: '▲', supermarket: '⊐', fifo: 'FIFO', safetyStock: '▣' };
+
 interface Props {
   summary: VsmSummary;
   onSelectNode: (id: string) => void;
@@ -38,7 +41,7 @@ export function Timeline({ summary, onSelectNode, onClose }: Props) {
                 {steps.map((s) => (
                   <th key={s.id} scope="col" className={`tl-col-${s.kind}`}>
                     <button type="button" className="link" onClick={() => onSelectNode(s.id)} title="Şekli seç">
-                      {s.kind === 'inventory' ? `▲ ${s.title}` : s.title}
+                      {s.kind === 'inventory' ? `${STOCK_PREFIX[s.shapeKind] ?? '▲'} ${s.title}` : s.title}
                     </button>
                     {s.kind === 'process' && s.overTakt && <span className="tl-warn" title="Takt üstü"> ⚠</span>}
                   </th>

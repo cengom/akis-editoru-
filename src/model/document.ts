@@ -19,6 +19,7 @@ import {
   REMOVED_VSM_MAP_FIELD_KEYS,
   SCHEMA_VERSION,
   SHAPE_KINDS,
+  isStockKind,
   SUPPORTED_SCHEMA_VERSIONS,
   type DiagramDocument,
   type EdgeKind,
@@ -103,7 +104,7 @@ export function toDocument(
 function copyData(kind: ShapeKind, data: ShapeData): ShapeData {
   const base: ShapeData = { title: data.title, description: data.description, color: data.color };
   if (kind === 'process') base.vsm = data.vsm ? cloneVsm(data.vsm) : emptyVsm();
-  if (kind === 'inventory') base.inventory = data.inventory ? cloneInventory(data.inventory) : emptyInventory();
+  if (isStockKind(kind)) base.inventory = data.inventory ? cloneInventory(data.inventory) : emptyInventory();
   return base;
 }
 
@@ -264,7 +265,7 @@ export function parseDocument(raw: unknown): ParseResult {
       data.vsm = vsm;
       if (hasRemovedVsmValues(d.vsm)) removedValueCount++;
     }
-    if (n.kind === 'inventory') {
+    if (isStockKind(n.kind as string)) {
       const inventory = parseInventory(d.inventory, where, fail);
       if (!inventory) return;
       data.inventory = inventory;

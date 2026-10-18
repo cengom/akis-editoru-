@@ -1,9 +1,9 @@
 import { COLOR_PRESETS, SHAPES } from '../model/shapes';
 import { LIMITS } from '../model/document';
 import { EDGE_KIND_SPECS } from '../model/edges';
-import { EDGE_KINDS, type EdgeKind, type FlowEdge, type ShapeData, type ShapeKind, type InventoryData, type ShapeNode, type VsmData, type VsmMapData, type VsmQuantity } from '../model/types';
-import { INVENTORY_FIELDS, VSM_FIELDS, VSM_LIMITS, emptyInventory, emptyVsm, formatDays, formatDuration, toSeconds } from '../model/vsm';
-import { effectiveCycleSeconds, inventoryDays, isOverTakt, type VsmSummary } from '../model/vsmCalc';
+import { EDGE_KINDS, isStockKind, type EdgeKind, type FlowEdge, type ShapeData, type ShapeKind, type InventoryData, type ShapeNode, type VsmData, type VsmMapData, type VsmQuantity } from '../model/types';
+import { INVENTORY_FIELDS, VSM_FIELDS, VSM_LIMITS, emptyInventory, emptyVsm, formatDays, formatDuration, formatNumber, toSeconds } from '../model/vsm';
+import { effectiveCycleSeconds, inventoryDays, isOverTakt, supermarketSizing, type VsmSummary } from '../model/vsmCalc';
 import { MapPanel } from './MapPanel';
 import { QuantityTable } from './QuantityFields';
 
@@ -49,6 +49,7 @@ export function PropertiesPanel(props: Props) {
           node={selectedNodes[0]}
           taktSec={props.summary.takt.seconds}
           demand={props.vsmMap.fields.customerDemand}
+          packQuantity={props.vsmMap.fields.packQuantity}
           onUpdate={props.onUpdateNode}
         />
       )}
@@ -98,11 +99,13 @@ function NodeEditor({
   node,
   taktSec,
   demand,
+  packQuantity,
   onUpdate,
 }: {
   node: ShapeNode;
   taktSec: number | null;
   demand: VsmQuantity;
+  packQuantity: VsmQuantity;
   onUpdate: Props['onUpdateNode'];
 }) {
   const kind = node.type as ShapeKind;
@@ -160,11 +163,13 @@ function NodeEditor({
       <p className="muted small">
         Konum: x {Math.round(node.position.x)}, y {Math.round(node.position.y)}
       </p>
-      {kind === 'inventory' && (
+      {isStockKind(kind) && (
         <InventoryEditor
           key={node.id}
           inventory={node.data.inventory ?? emptyInventory()}
           demand={demand}
+          packQuantity={packQuantity}
+          isSupermarket={kind === 'supermarket'}
           onChange={(inventory) => onUpdate(node.id, { inventory })}
         />
       )}
@@ -185,20 +190,25 @@ function NodeEditor({
 function InventoryEditor({
   inventory,
   demand,
+  packQuantity,
+  isSupermarket,
   onChange,
 }: {
   inventory: InventoryData;
   demand: VsmQuantity;
+  packQuantity: VsmQuantity;
+  isSupermarket: boolean;
   onChange: (inv: InventoryData) => void;
 }) {
   const wait = inventoryDays(inventory.stock, demand);
+  const sizing = supermarketSizing(inventory.replenishTime, inventory.safetyRate, demand, packQuantity);
   return (
     <section className="vsm-section" aria-label="Stok verisi">
       <h3>Stok verisi</h3>
       <QuantityTable
-        specs={INVENTORY_FIELDS}
+        specs={INVENTORY_FIELDS.filter((f) => !f.advanced)}
         values={inventory}
-        onChange={(_key, q) => onChange({ ...inventory, stock: q })}
+        onChange={(key, q) => onChange({ ...inventory, [key]: q })}
         idPrefix="stok"
       />
       <p className="small" data-testid="stok-bekleme">
@@ -214,6 +224,39 @@ function InventoryEditor({
       <p className="muted small">
         Zaman çizgisinde üst basamak olarak gösterilir. Adet girilirse gün = adet ÷ günlük müşteri talebi.
       </p>
+      {isSupermarket && (
+        <>
+          <h3>Süpermarket boyutu</h3>
+          <QuantityTable
+            specs={INVENTORY_FIELDS.filter((f) => f.advanced)}
+            values={inventory}
+            onChange={(key, q) => onChange({ ...inventory, [key]: q })}
+            idPrefix="stok"
+          />
+          <dl className="mini-dl" data-testid="supermarket-boyut">
+            <dt>Gereken stok</dt>
+            <dd>
+              {sizing.requiredQty === null ? (
+                <span className="muted small">{sizing.reason}</span>
+              ) : (
+                <span className="calc-value">{formatNumber(sizing.requiredQty, 1)} adet</span>
+              )}
+            </dd>
+            <dt>Kanban kartı</dt>
+            <dd>
+              {sizing.kanbanCards === null ? (
+                <span className="muted small">{sizing.requiredQty === null ? '—' : sizing.reason}</span>
+              ) : (
+                <span className="calc-value">{sizing.kanbanCards} kart</span>
+              )}
+            </dd>
+          </dl>
+          <p className="muted small">
+            Gereken stok = günlük talep × yenileme süresi × (1 + güvenlik payı). Kanban kartı = ⌈gereken stok ÷ paket
+            adedi⌉.
+          </p>
+        </>
+      )}
     </section>
   );
 }

@@ -62,7 +62,9 @@ export const VSM_FIELDS: readonly VsmFieldSpec[] = [
 
 /* ---------- Stok üçgeni ---------- */
 
-export const INVENTORY_FIELDS: readonly QuantitySpec<'stock'>[] = [
+export type InventoryFieldKey = 'stock' | 'replenishTime' | 'safetyRate';
+
+export const INVENTORY_FIELDS: readonly QuantitySpec<InventoryFieldKey>[] = [
   {
     key: 'stock',
     label: 'Stok',
@@ -72,6 +74,17 @@ export const INVENTORY_FIELDS: readonly QuantitySpec<'stock'>[] = [
     advanced: false,
     hint: 'Adet girilirse bekleme günü müşteri talebinden hesaplanır.',
   },
+  // Süpermarket boyut hesabı (yalnızca süpermarkette gösterilir)
+  {
+    key: 'replenishTime',
+    label: 'Yenileme süresi',
+    short: 'Yenileme',
+    units: ['gün', 'saat'],
+    defaultUnit: 'gün',
+    advanced: true,
+    hint: 'Çekilen malzemenin yeniden üretilip rafa gelmesi.',
+  },
+  { key: 'safetyRate', label: 'Güvenlik payı', short: 'Güvenlik', units: ['%'], defaultUnit: '%', max: 1000, advanced: true },
 ];
 
 export const VSM_FIELD_SPECS = Object.fromEntries(VSM_FIELDS.map((f) => [f.key, f])) as Record<VsmFieldKey, VsmFieldSpec>;
@@ -135,11 +148,11 @@ export function emptyVsmMap(): VsmMapData {
 
 /** Yeni bir stok üçgeni için boş veri. */
 export function emptyInventory(): InventoryData {
-  return { stock: { value: null, unit: 'adet' } };
+  return emptyFields(INVENTORY_FIELDS) as InventoryData;
 }
 
 export function cloneInventory(inv: InventoryData): InventoryData {
-  return { stock: { ...inv.stock } };
+  return { stock: { ...inv.stock }, replenishTime: { ...inv.replenishTime }, safetyRate: { ...inv.safetyRate } };
 }
 
 export function cloneVsm(vsm: VsmData): VsmData {
@@ -337,5 +350,5 @@ export function parseInventory(raw: unknown, where: string, fail: Fail): Invento
     return null;
   }
   const fields = parseQuantityFields(raw, INVENTORY_FIELDS, where, fail);
-  return fields ? { stock: fields.stock } : null;
+  return fields ? (fields as InventoryData) : null;
 }

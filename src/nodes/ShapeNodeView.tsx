@@ -1,6 +1,7 @@
 import { memo, useContext, type CSSProperties } from 'react';
 import { Handle, NodeResizer, Position, type NodeProps, type NodeTypes } from '@xyflow/react';
 import { VsmCanvasContext } from '../components/VsmCanvasContext';
+import { SymbolSvg, isSymbolKind } from './VsmSymbols';
 import { SHAPES, readableTextColor } from '../model/shapes';
 import { HANDLE_SIDES, SHAPE_KINDS, type HandleSide, type ShapeKind, type ShapeNode, type VsmData, type VsmQuantity } from '../model/types';
 import { effectiveCycleSeconds, inventoryDays, isOverTakt } from '../model/vsmCalc';
@@ -39,7 +40,8 @@ function ShapeNodeView({ type, data, selected }: NodeProps<ShapeNode>) {
     '--shape-color': data.color,
     '--shape-text': readableTextColor(data.color),
   } as CSSProperties;
-  const classes = ['shape', `shape-${kind}`, outline ? 'shape-svg' : '', selected ? 'is-selected' : '', overTakt ? 'is-over-takt' : '']
+  const symbol = isSymbolKind(kind);
+  const classes = ['shape', `shape-${kind}`, outline ? 'shape-svg' : '', symbol ? 'shape-symbol' : '', selected ? 'is-selected' : '', overTakt ? 'is-over-takt' : '']
     .filter(Boolean)
     .join(' ');
 
@@ -56,6 +58,15 @@ function ShapeNodeView({ type, data, selected }: NodeProps<ShapeNode>) {
           <div className="inventory-mark" aria-hidden="true">I</div>
           <div className="inventory-label">
             <div className="shape-title">{data.title.trim() || 'Stok'}</div>
+            {data.inventory && <InventoryInfo stock={data.inventory.stock} demand={demand} />}
+            {data.description && <div className="shape-desc">{data.description}</div>}
+          </div>
+        </>
+      ) : symbol ? (
+        <>
+          <SymbolSvg kind={kind} fill={data.color} className="symbol-svg" />
+          <div className="inventory-label">
+            <div className="shape-title">{data.title.trim() || spec.label}</div>
             {data.inventory && <InventoryInfo stock={data.inventory.stock} demand={demand} />}
             {data.description && <div className="shape-desc">{data.description}</div>}
           </div>

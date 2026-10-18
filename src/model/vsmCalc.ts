@@ -1,4 +1,4 @@
-import type { FlowEdge, ShapeNode, VsmData, VsmMapData, VsmQuantity } from './types';
+import { isStockKind, type FlowEdge, type ShapeKind, type ShapeNode, type VsmData, type VsmMapData, type VsmQuantity } from './types';
 import { toSeconds } from './vsm';
 
 /*
@@ -68,6 +68,33 @@ export function inventoryDays(stock: VsmQuantity, demand: VsmQuantity): Inventor
   return { days: stock.value / demand.value, calculated: true, reason: null };
 }
 
+export interface SupermarketSizing {
+  /** Gereken stok (adet) = günlük talep × yenileme (gün) × (1 + güvenlik) */
+  requiredQty: number | null;
+  /** Kanban kartı = ⌈gereken ÷ paket adedi⌉ */
+  kanbanCards: number | null;
+  reason: string | null;
+}
+
+/** Süpermarket boyutu ve kanban kartı sayısı. */
+export function supermarketSizing(
+  replenishTime: VsmQuantity,
+  safetyRate: VsmQuantity,
+  demand: VsmQuantity,
+  packQuantity: VsmQuantity,
+): SupermarketSizing {
+  if (demand.value === null) return { requiredQty: null, kanbanCards: null, reason: 'Müşteri talebi gerekli.' };
+  if (replenishTime.value === null) return { requiredQty: null, kanbanCards: null, reason: 'Yenileme süresini girin.' };
+  const days = replenishTime.unit === 'saat' ? replenishTime.value / 24 : replenishTime.value;
+  const requiredQty = demand.value * days * (1 + (safetyRate.value ?? 0) / 100);
+  const pack = packQuantity.value;
+  return {
+    requiredQty,
+    kanbanCards: pack && pack > 0 ? Math.ceil(requiredQty / pack - 1e-9) : null,
+    reason: pack && pack > 0 ? null : 'Kanban kartı için harita verilerine paket adedi girin.',
+  };
+}
+
 export interface ProcessStep {
   kind: 'process';
   id: string;
@@ -86,6 +113,8 @@ export interface ProcessStep {
 
 export interface InventoryStep extends InventoryDays {
   kind: 'inventory';
+  /** Şeklin türü: stok üçgeni, süpermarket, FIFO ya da güvenlik stoğu */
+  shapeKind: ShapeKind;
   id: string;
   title: string;
   x: number;
@@ -235,9 +264,10 @@ export function computeSummary(nodes: ShapeNode[], edges: FlowEdge[], map: VsmMa
     .sort(byX);
 
   const inventories: InventoryStep[] = nodes
-    .filter((n) => n.type === 'inventory' && n.data.inventory && n.data.inventory.stock.value !== null)
+    .filter((n) => isStockKind(n.type ?? '') && n.data.inventory && n.data.inventory.stock.value !== null)
     .map((n) => ({
       kind: 'inventory' as const,
+      shapeKind: n.type as ShapeKind,
       id: n.id,
       title: n.data.title.trim() || 'Stok',
       x: n.position.x,

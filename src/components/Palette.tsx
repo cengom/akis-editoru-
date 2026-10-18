@@ -2,6 +2,7 @@ import type { DragEvent } from 'react';
 import { EDGE_KIND_SPECS } from '../model/edges';
 import { SHAPES } from '../model/shapes';
 import { EDGE_KINDS, SHAPE_KINDS, type EdgeKind, type ShapeKind } from '../model/types';
+import { SymbolSvg, isSymbolKind } from '../nodes/VsmSymbols';
 
 export const DRAG_MIME = 'application/x-akis-sekil';
 
@@ -14,6 +15,7 @@ interface Props {
 const GROUPS = [
   { id: 'general', title: 'Genel şekiller' },
   { id: 'vsm', title: 'VSM' },
+  { id: 'pull', title: 'Çekme ve planlama' },
 ] as const;
 
 export function Palette({ onAdd, connectKind, onConnectKindChange }: Props) {
@@ -29,7 +31,7 @@ export function Palette({ onAdd, connectKind, onConnectKindChange }: Props) {
       {GROUPS.map((group) => (
         <section key={group.id} className="palette-group" aria-label={group.title}>
           <h3>{group.title}</h3>
-          <ul>
+          <ul className={group.id === 'general' ? undefined : 'palette-compact'}>
             {SHAPE_KINDS.filter((k) => SHAPES[k].group === group.id).map((kind) => (
               <li key={kind}>
                 <button
@@ -44,13 +46,13 @@ export function Palette({ onAdd, connectKind, onConnectKindChange }: Props) {
                   <ShapeIcon kind={kind} color={SHAPES[kind].color} />
                   <span>
                     <strong>{SHAPES[kind].label}</strong>
-                    <small>{SHAPES[kind].hint}</small>
+                    {group.id === 'general' && <small>{SHAPES[kind].hint}</small>}
                   </span>
                 </button>
               </li>
             ))}
           </ul>
-          {group.id === 'vsm' && (
+          {group.id === 'pull' && (
             <div className="arrow-kinds" role="radiogroup" aria-label="Yeni bağlantı türü">
               <h4>Yeni ok türü</h4>
               <p className="muted small">Seçin, sonra şekillerin kenar noktalarından ok çekin.</p>
@@ -78,6 +80,7 @@ export function Palette({ onAdd, connectKind, onConnectKindChange }: Props) {
 }
 
 function ShapeIcon({ kind, color }: { kind: ShapeKind; color: string }) {
+  if (isSymbolKind(kind)) return <SymbolSvg kind={kind} fill={color} className="palette-icon" />;
   const common = { fill: color, stroke: '#374151', strokeWidth: 1.5 };
   let shape;
   switch (kind) {
@@ -110,6 +113,14 @@ function ShapeIcon({ kind, color }: { kind: ShapeKind; color: string }) {
         </>
       );
       break;
+    case 'control':
+      shape = (
+        <>
+          <rect x="3" y="5" width="30" height="18" {...common} />
+          <rect x="6" y="8" width="24" height="12" fill="none" stroke="#374151" strokeWidth="1" />
+        </>
+      );
+      break;
     case 'kaizen':
       shape = <polygon points="18,1 21,9 30,5 25,13 34,16 25,18 29,26 20,21 16,28 14,20 5,24 10,16 2,12 11,10 8,3 15,8" {...common} />;
       break;
@@ -134,6 +145,18 @@ function ArrowIcon({ kind }: { kind: EdgeKind }) {
         <>
           <line x1="2" y1="8" x2="38" y2="8" stroke="#2563eb" strokeWidth="1.5" strokeDasharray="4 3" />
           <polyline points="34,4 42,8 34,12" fill="none" stroke="#2563eb" strokeWidth="1.5" />
+        </>
+      )}
+      {kind === 'electronic' && (
+        <>
+          <polyline points="2,8 14,8 18,3 22,13 26,3 30,8 38,8" fill="none" stroke="#2563eb" strokeWidth="1.5" />
+          <polyline points="34,4 42,8 34,12" fill="none" stroke="#2563eb" strokeWidth="1.5" />
+        </>
+      )}
+      {kind === 'pull' && (
+        <>
+          <path d="M3 13 Q20 -4 35 8" fill="none" stroke="#374151" strokeWidth="3" />
+          <polygon points="33,3 43,10 32,13" fill="#374151" />
         </>
       )}
       {kind === 'material' && (

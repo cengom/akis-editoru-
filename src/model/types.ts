@@ -28,18 +28,36 @@ export const SHAPE_KINDS = [
   'supplier',
   'inventory',
   'kaizen',
+  'control',
+  'operator',
+  'truck',
+  // Çekme sistemi ve planlama sembolleri
+  'supermarket',
+  'fifo',
+  'safetyStock',
+  'kanbanProduction',
+  'kanbanWithdrawal',
+  'kanbanSignal',
+  'kanbanPost',
+  'heijunka',
+  'goSee',
 ] as const;
 export type ShapeKind = (typeof SHAPE_KINDS)[number];
+
+/** Stok tutan şekiller: stok verisi taşır ve zaman çizgisinde bekleme olarak sayılır. */
+export const STOCK_KINDS = ['inventory', 'supermarket', 'fifo', 'safetyStock'] as const satisfies readonly ShapeKind[];
+export type StockKind = (typeof STOCK_KINDS)[number];
+export const isStockKind = (k: string): k is StockKind => (STOCK_KINDS as readonly string[]).includes(k);
 
 /** Her şeklin dört kenarındaki bağlantı noktaları. */
 export const HANDLE_SIDES = ['top', 'right', 'bottom', 'left'] as const;
 export type HandleSide = (typeof HANDLE_SIDES)[number];
 
 /**
- * Bağlantı türleri. `flow`: genel ok. VSM: `info` bilgi akışı, `material` malzeme (itme) akışı,
- * `shipment` sevkiyat.
+ * Bağlantı türleri. `flow`: genel ok. VSM: `info` elle bilgi akışı, `electronic` elektronik bilgi akışı
+ * (zikzak), `material` malzeme (itme) akışı, `pull` çekme (malzeme çekilmesi), `shipment` sevkiyat.
  */
-export const EDGE_KINDS = ['flow', 'info', 'material', 'shipment'] as const;
+export const EDGE_KINDS = ['flow', 'info', 'electronic', 'material', 'pull', 'shipment'] as const;
 export type EdgeKind = (typeof EDGE_KINDS)[number];
 
 /* ---------- VSM (değer akışı) verileri ---------- */
@@ -102,6 +120,10 @@ export interface VsmData {
 /** Stok üçgeninin verisi. Miktar adet ya da doğrudan gün olarak girilir. */
 export interface InventoryData {
   stock: VsmQuantity;
+  /** Yalnızca süpermarket boyut hesabı için: yenileme süresi (gün/saat) */
+  replenishTime: VsmQuantity;
+  /** Yalnızca süpermarket boyut hesabı için: güvenlik payı (%) */
+  safetyRate: VsmQuantity;
 }
 
 /** Harita (hat) düzeyindeki VSM alanları. */
