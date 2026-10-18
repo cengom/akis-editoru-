@@ -61,8 +61,12 @@
 
 ## Bekleyen (kullanıcı tarafı)
 
-- [ ] Supabase projesi oluşturma, SQL'i çalıştırma, anonim girişi açma, `.env.local` doldurma (README)
-- [ ] Gerçek Supabase ile uçtan uca deneme (giriş, kaydet, yenile, başka sekmede açma, RLS: başka kullanıcının verisini görememe)
+- [x] Supabase projesi oluşturma, SQL'i çalıştırma, anonim girişi açma, `.env.local` doldurma (README)
+- [x] Gerçek Supabase ile deneme (18.10.2026): misafir girişi, buluta kaydet, güncelle, sunucudan yeniden açma,
+      sayfa yenileme, yeni proje, yeniden adlandırma (sonrasında yanlış çakışma yok), iki sekmede gerçek çakışma
+      uyarısı, giriş yapmamış isteğin tabloya erişememesi (HTTP 401, RLS)
+- [ ] Silme düğmesinin gerçek Supabase'de denenmesi (kullanıcı yapacak; test projeleri: "Supabase testi 1", "Supabase testi 2 (yeni ad) B")
+- [ ] İki farklı misafir hesabın birbirinin projelerini görememesi (ikinci tarayıcı/gizli pencereyle)
 
 ## Sıradaki işler (henüz uygulanmadı)
 
