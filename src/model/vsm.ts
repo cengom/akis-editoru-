@@ -1,0 +1,271 @@
+import {
+  TIME_UNITS,
+  VSM_FIELD_KEYS,
+  VSM_MAP_FIELD_KEYS,
+  type VsmData,
+  type VsmFieldKey,
+  type VsmMapData,
+  type VsmMapFieldKey,
+  type VsmQuantity,
+  type VsmUnit,
+} from './types';
+
+/** Sayı + birim biçimindeki bir alanın tanımı: etiket, izinli birimler ve kurallar. */
+export interface QuantitySpec<K extends string = string> {
+  key: K;
+  /** Özellik panelindeki ad */
+  label: string;
+  /** Tuvaldeki veri kutusunda kullanılan kısa ad */
+  short: string;
+  units: readonly VsmUnit[];
+  defaultUnit: VsmUnit;
+  integer?: boolean;
+  max?: number;
+  /** Gelişmiş alanlar panelde katlanabilir bölümde gösterilir. */
+  advanced: boolean;
+  /** Panelde alanın altında gösterilen kısa açıklama */
+  hint?: string;
+}
+
+export type VsmFieldSpec = QuantitySpec<VsmFieldKey>;
+export type VsmMapFieldSpec = QuantitySpec<VsmMapFieldKey>;
+
+/* ---------- Proses alanları ---------- */
+
+export const VSM_FIELDS: readonly VsmFieldSpec[] = [
+  { key: 'cycleTime', label: 'Çevrim süresi', short: 'Çevrim (C/T)', units: TIME_UNITS, defaultUnit: 'sn', advanced: false },
+  { key: 'changeoverTime', label: 'Setup / değişim', short: 'Setup (C/O)', units: TIME_UNITS, defaultUnit: 'dk', advanced: false },
+  { key: 'uptime', label: 'Uptime', short: 'Uptime', units: ['%'], defaultUnit: '%', max: 100, advanced: false },
+  { key: 'operators', label: 'Operatör sayısı', short: 'Operatör', units: ['kişi'], defaultUnit: 'kişi', integer: true, advanced: false },
+  { key: 'wip', label: 'WIP / stok', short: 'WIP / stok', units: ['adet', 'gün'], defaultUnit: 'adet', advanced: true },
+  { key: 'valueAddedTime', label: 'Değer katan süre', short: 'Değer katan', units: TIME_UNITS, defaultUnit: 'sn', advanced: true },
+  { key: 'nonValueAddedTime', label: 'Değer katmayan süre', short: 'Değer katmayan', units: TIME_UNITS, defaultUnit: 'dk', advanced: true },
+  { key: 'distance', label: 'Mesafe', short: 'Mesafe', units: ['m'], defaultUnit: 'm', advanced: true },
+];
+
+export const VSM_FIELD_SPECS = Object.fromEntries(VSM_FIELDS.map((f) => [f.key, f])) as Record<VsmFieldKey, VsmFieldSpec>;
+
+/* ---------- Harita (hat) alanları ---------- */
+
+export const VSM_MAP_FIELDS: readonly VsmMapFieldSpec[] = [
+  { key: 'customerDemand', label: 'Müşteri talebi', short: 'Talep', units: ['adet/gün'], defaultUnit: 'adet/gün', advanced: false },
+  {
+    key: 'netWorkingTime',
+    label: 'Net çalışma süresi',
+    short: 'Net süre',
+    units: ['dk/gün', 'sn/gün'],
+    defaultUnit: 'dk/gün',
+    advanced: false,
+    hint: 'Günlük toplam (tüm vardiyalar, molalar düşülmüş).',
+  },
+  { key: 'shifts', label: 'Vardiya sayısı', short: 'Vardiya', units: ['vardiya'], defaultUnit: 'vardiya', integer: true, max: 10, advanced: false },
+  {
+    key: 'shipmentFrequency',
+    label: 'Sevkiyat sıklığı',
+    short: 'Sevkiyat',
+    units: ['kez/gün', 'kez/hafta', 'kez/ay'],
+    defaultUnit: 'kez/gün',
+    advanced: false,
+  },
+  { key: 'pitch', label: 'Pitch', short: 'Pitch', units: TIME_UNITS, defaultUnit: 'dk', advanced: true, hint: 'İsteğe bağlı.' },
+];
+
+export const VSM_MAP_FIELD_SPECS = Object.fromEntries(VSM_MAP_FIELDS.map((f) => [f.key, f])) as Record<
+  VsmMapFieldKey,
+  VsmMapFieldSpec
+>;
+
+export const VSM_LIMITS = { value: 1_000_000_000, note: 2000 };
+
+/* ---------- Boş veri ---------- */
+
+function emptyFields<K extends string>(specs: readonly QuantitySpec<K>[]): Record<K, VsmQuantity> {
+  return Object.fromEntries(specs.map((s) => [s.key, { value: null, unit: s.defaultUnit }])) as Record<K, VsmQuantity>;
+}
+
+/** Yeni bir proses için boş VSM verisi. Veri girilince kutu kendiliğinden görünür. */
+export function emptyVsm(): VsmData {
+  return { showDataBox: true, fields: emptyFields(VSM_FIELDS), note: '' };
+}
+
+/** Yeni bir harita için boş genel VSM verisi. */
+export function emptyVsmMap(): VsmMapData {
+  return { fields: emptyFields(VSM_MAP_FIELDS), showTimeline: false };
+}
+
+export function cloneVsm(vsm: VsmData): VsmData {
+  return {
+    showDataBox: vsm.showDataBox,
+    fields: Object.fromEntries(VSM_FIELD_KEYS.map((k) => [k, { ...vsm.fields[k] }])) as Record<VsmFieldKey, VsmQuantity>,
+    note: vsm.note,
+  };
+}
+
+export function cloneVsmMap(map: VsmMapData): VsmMapData {
+  return {
+    fields: Object.fromEntries(VSM_MAP_FIELD_KEYS.map((k) => [k, { ...map.fields[k] }])) as Record<VsmMapFieldKey, VsmQuantity>,
+    showTimeline: map.showTimeline,
+  };
+}
+
+/** En az bir alan dolu ya da not yazılmışsa true. */
+export function hasVsmContent(vsm: VsmData): boolean {
+  return vsm.note.trim() !== '' || VSM_FIELD_KEYS.some((k) => vsm.fields[k].value !== null);
+}
+
+/* ---------- Sayı biçimi ---------- */
+
+/** Sayıyı Türkçe biçimde yazar (ondalık ayırıcı virgül). */
+export function formatNumber(value: number, maxDecimals = 3): string {
+  return value.toLocaleString('tr-TR', { maximumFractionDigits: maxDecimals });
+}
+
+export function formatQuantity(q: VsmQuantity): string {
+  return q.value === null ? '—' : `${formatNumber(q.value)} ${q.unit}`;
+}
+
+/** Giriş kutusunda düzenlemek için sayı → metin (binlik ayırıcı yok). */
+export function numberToInput(value: number | null): string {
+  return value === null ? '' : String(value).replace('.', ',');
+}
+
+/**
+ * Kullanıcının yazdığı metni sayıya çevirir. Boş metin `null` (boş) olur.
+ * Hem "12,5" hem "12.5" kabul edilir.
+ */
+export function parseNumberInput(text: string): { ok: true; value: number | null } | { ok: false } {
+  const t = text.trim().replace(/\s/g, '');
+  if (t === '') return { ok: true, value: null };
+  if (!/^-?\d+([.,]\d+)?$/.test(t)) return { ok: false };
+  const n = Number(t.replace(',', '.'));
+  return Number.isFinite(n) ? { ok: true, value: n } : { ok: false };
+}
+
+/** Değerin alan kurallarına uyup uymadığını denetler; sorun varsa Türkçe mesaj döndürür. */
+export function checkVsmValue(spec: QuantitySpec, value: number | null): string | null {
+  if (value === null) return null;
+  if (!Number.isFinite(value)) return 'Geçerli bir sayı girin.';
+  if (value < 0) return 'Negatif olamaz.';
+  if (value > (spec.max ?? VSM_LIMITS.value)) return `En fazla ${formatNumber(spec.max ?? VSM_LIMITS.value)} olabilir.`;
+  if (spec.integer && !Number.isInteger(value)) return 'Tam sayı olmalı.';
+  return null;
+}
+
+/* ---------- Süre dönüşümleri ---------- */
+
+const SECONDS: Partial<Record<VsmUnit, number>> = { sn: 1, dk: 60, saat: 3600, 'sn/gün': 1, 'dk/gün': 60 };
+
+/** Süre alanını saniyeye çevirir; boş ya da süre olmayan alan için `null`. */
+export function toSeconds(q: VsmQuantity): number | null {
+  const factor = SECONDS[q.unit];
+  return q.value === null || factor === undefined ? null : q.value * factor;
+}
+
+/** Saniyeyi okunaklı bir birimle yazar (sn, dk veya saat). */
+export function formatDuration(seconds: number): string {
+  if (seconds < 120) return `${formatNumber(seconds, 2)} sn`;
+  if (seconds < 7200) return `${formatNumber(seconds / 60, 2)} dk`;
+  return `${formatNumber(seconds / 3600, 2)} saat`;
+}
+
+/* ---------- Dosyadan okuma (doğrulama) ---------- */
+
+type Fail = (msg: string) => void;
+
+function isPlainObject(v: unknown): v is Record<string, unknown> {
+  return typeof v === 'object' && v !== null && !Array.isArray(v);
+}
+
+/**
+ * Sayı + birim alanlarını okur. Eksik alanlar boş kabul edilir (geriye uyumluluk);
+ * "12,5" gibi metin sayıya çevrilir; birim yoksa varsayılan birim kullanılır.
+ * Gerçekten hatalı değerler için hata bildirir ve `null` döndürür.
+ */
+function parseQuantityFields<K extends string>(
+  raw: unknown,
+  specs: readonly QuantitySpec<K>[],
+  where: string,
+  fail: Fail,
+): Record<K, VsmQuantity> | null {
+  const result = emptyFields(specs);
+  if (raw === undefined || raw === null) return result;
+  if (!isPlainObject(raw)) {
+    fail(`${where}: alanlar geçersiz.`);
+    return null;
+  }
+  let ok = true;
+  for (const spec of specs) {
+    const f = raw[spec.key];
+    if (f === undefined || f === null) continue;
+    const bad = (msg: string) => {
+      fail(`${where}: "${spec.label}" ${msg}`);
+      ok = false;
+    };
+    if (!isPlainObject(f)) {
+      bad('geçersiz.');
+      continue;
+    }
+    let value: number | null = null;
+    if (typeof f.value === 'number') value = f.value;
+    else if (typeof f.value === 'string') {
+      const parsed = parseNumberInput(f.value);
+      if (!parsed.ok) {
+        bad('sayı değil.');
+        continue;
+      }
+      value = parsed.value;
+    } else if (f.value !== undefined && f.value !== null) {
+      bad('sayı değil.');
+      continue;
+    }
+    const problem = checkVsmValue(spec, value);
+    if (problem) {
+      bad(`— ${problem}`);
+      continue;
+    }
+    const unit = f.unit === undefined ? spec.defaultUnit : f.unit;
+    if (!spec.units.includes(unit as VsmUnit)) {
+      bad(`için birim "${String(unit)}" geçersiz (${spec.units.join(', ')} olmalı).`);
+      continue;
+    }
+    result[spec.key] = { value, unit: unit as VsmUnit };
+  }
+  return ok ? result : null;
+}
+
+/** Bir prosesin VSM verisini okur. Eksik veri boş kabul edilir. */
+export function parseVsm(raw: unknown, where: string, fail: Fail): VsmData | null {
+  const result = emptyVsm();
+  if (raw === undefined || raw === null) return result;
+  if (!isPlainObject(raw)) {
+    fail(`${where}: VSM verisi geçersiz.`);
+    return null;
+  }
+  if (typeof raw.showDataBox === 'boolean') result.showDataBox = raw.showDataBox;
+  if (raw.note !== undefined) {
+    if (typeof raw.note !== 'string' || raw.note.length > VSM_LIMITS.note) {
+      fail(`${where}: VSM notu geçersiz ya da çok uzun.`);
+      return null;
+    }
+    result.note = raw.note;
+  }
+  const fields = parseQuantityFields(raw.fields, VSM_FIELDS, where, fail);
+  if (!fields) return null;
+  result.fields = fields;
+  return result;
+}
+
+/** Haritanın genel VSM verisini okur. Eski sürüm dosyalarında yoktur; boş kabul edilir. */
+export function parseVsmMap(raw: unknown, fail: Fail): VsmMapData | null {
+  const result = emptyVsmMap();
+  if (raw === undefined || raw === null) return result;
+  if (!isPlainObject(raw)) {
+    fail('VSM genel verileri ("vsmMap") geçersiz.');
+    return null;
+  }
+  if (typeof raw.showTimeline === 'boolean') result.showTimeline = raw.showTimeline;
+  const fields = parseQuantityFields(raw.fields, VSM_MAP_FIELDS, 'VSM genel verileri', fail);
+  if (!fields) return null;
+  result.fields = fields;
+  return result;
+}

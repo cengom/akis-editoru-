@@ -1,0 +1,225 @@
+# Akış Editörü
+
+Tarayıcıda çalışan bir **süreç / akış ve VSM diyagramı editörü**. Kutuları sürükleyip bırakarak iş
+süreçlerinizi çizebilir, oklarla bağlayabilir, çizimi JSON dosyası olarak saklayabilir ve isterseniz
+**buluta** kaydedebilirsiniz.
+
+İki kayıt modu vardır:
+
+| Mod | Ne zaman | Nerede saklanır |
+| --- | --- | --- |
+| **💾 Yerel taslak** | Giriş yapmadan ya da bulut projesi açık değilken | Yalnızca bu tarayıcıda (otomatik) |
+| **☁ Buluta kayıtlı proje** | Giriş yapıp bir bulut projesi açtığınızda | Supabase veritabanında ("Kaydet" ile) |
+
+Bulut ayarlanmamışsa (Supabase bilgileri girilmemişse) uygulama yalnızca yerel taslakla çalışır.
+
+## Kurulum
+
+Gerekenler: **Node.js 20.19+ veya 22.12+** (geliştirildiği sürüm: Node 24.21.0, npm 11.19.0).
+
+```bash
+cd ~/Documents/akis-editoru
+npm install
+```
+
+## Çalıştırma
+
+```bash
+npm run dev
+```
+
+Sonra tarayıcıda **http://localhost:5173** adresini açın.
+
+Diğer komutlar:
+
+| Komut | Ne yapar |
+| --- | --- |
+| `npm run dev:sahte-bulut` | Supabase olmadan bulut ekranlarını denemek için **sahte bulutlu** geliştirme sunucusu (http://localhost:5174). Veriler gerçek sunucuya gitmez; yalnızca o tarayıcıda durur. |
+| `npm run typecheck` | TypeScript tür kontrolü |
+| `npm run build` | Tür kontrolü + üretim derlemesi (`dist/` klasörü) |
+| `npm run preview` | Derlenmiş sürümü yerelde açar |
+
+## Bulut kaydını kurma (Supabase, ücretsiz katman)
+
+Bu adımları **siz** yapmalısınız; hesap ve proje sizin adınıza açılır.
+
+1. **Hesap ve proje:** https://supabase.com adresinde ücretsiz hesap açın → **New project**. Bölge olarak
+   size yakın birini (ör. Frankfurt) seçin. Veritabanı şifresini güvenli bir yere kaydedin (uygulamada
+   kullanılmaz).
+2. **Tabloyu ve güvenlik kurallarını oluşturun:** Sol menüden **SQL Editor** → **New query** →
+   [`supabase/migrations/20261018000000_diagrams.sql`](supabase/migrations/20261018000000_diagrams.sql)
+   dosyasının tamamını yapıştırıp **Run**. Bu dosya `diagrams` tablosunu, `updated_at` tetikleyicisini ve
+   Row Level Security kurallarını kurar (her kullanıcı yalnızca kendi diyagramlarını görür ve değiştirir).
+3. **Misafir girişini açın:** **Authentication → Sign In / Providers** (ya da *Auth Providers*) →
+   **Allow anonymous sign-ins** seçeneğini açıp kaydedin. Uygulama şu an e-posta/şifre istemeden bu
+   yöntemle giriş yapar.
+4. **Bağlantı bilgileri:** **Project Settings → API** (ya da *API Keys*) sayfasından **Project URL** ve
+   **anon / publishable** anahtarını alın. Proje klasöründe `.env.example` dosyasını `.env.local` adıyla
+   kopyalayıp doldurun:
+   ```bash
+   cp .env.example .env.local
+   ```
+   ```
+   VITE_SUPABASE_URL=https://xxxxxxxx.supabase.co
+   VITE_SUPABASE_ANON_KEY=eyJ... (ya da sb_publishable_...)
+   ```
+   `.env.local` git'e eklenmez. **`service_role` / secret anahtarını asla buraya yazmayın**; o anahtar
+   tüm güvenlik kurallarını atlar.
+5. `npm run dev` ile yeniden başlatın. Üst çubukta "Giriş yap" görünür.
+
+**Veri modeli:** Her diyagram `diagrams` tablosunda bir satırdır: `id`, `user_id`, `name`,
+`document_json` (uygulamanın tam JSON belgesi: `schemaVersion`, `viewport`, `vsmMap`, `nodes`, `edges`),
+`created_at`, `updated_at`. Belge sütunlara bölünmez. Buluttan gelen belge de içe aktarılan dosya gibi
+doğrulanır.
+
+### Misafir hesabı hakkında (önemli)
+
+Giriş için e-posta ya da şifre gerekmez: "Giriş yap" bu tarayıcıya bağlı bir **misafir hesabı** açar.
+Bunun sonuçları:
+
+- Projeler bulutta durur ama hesaba **yalnızca bu tarayıcıdan** ulaşılır. **Başka bilgisayardan aynı
+  projeleri görmek şu an mümkün değildir** (bunun için hesaba e-posta bağlama özelliği gerekir; bkz.
+  `TASKS.md`).
+- Tarayıcı verileri silinirse ya da **"Çıkış yap"** derseniz misafir hesabına bir daha giriş yapılamaz
+  ve o hesabın projelerine ulaşılamaz. Uygulama çıkışta bunu ayrıca uyarır.
+- Önemli çizimler için "JSON dışa aktar" ile yedek alın.
+
+### İnternette yayımlama (Vercel veya Cloudflare Pages)
+
+Uygulama tek sayfalık statik bir sitedir; sunucu kodu yoktur.
+
+- **Derleme komutu:** `npm run build` · **Çıktı klasörü:** `dist`
+- Barındırma panelinde ortam değişkenleri olarak `VITE_SUPABASE_URL` ve `VITE_SUPABASE_ANON_KEY` girin
+  (değişkenler derleme sırasında koda gömülür; değiştirince yeniden derleyin).
+- Supabase panelinde **Authentication → URL Configuration → Site URL** alanına yayın adresini yazın.
+- Ücretsiz katmanda misafir girişleri kötüye kullanıma açıktır; herkese açık yayından önce Supabase'in
+  CAPTCHA korumasını açmanız önerilir.
+
+## Nasıl kullanılır?
+
+- **Şekil eklemek:** Soldaki paletten bir şekli tuvale sürükleyip bırakın ya da şekle tıklayın.
+  Şekiller: Başlangıç/Bitiş, Proses, Karar, Departman, Not.
+- **Taşımak:** Şekli fareyle sürükleyin. Seçili şeklin köşelerinden boyutunu değiştirebilirsiniz.
+- **Bağlamak:** Fareyi şeklin üzerine getirin, kenarlarda beliren noktadan başka bir şeklin noktasına sürükleyin.
+- **Düzenlemek:** Bir şekle tıklayın; sağ panelden başlık, açıklama ve renk değiştirin.
+- **VSM verileri (yalnızca Proses):** Bir proses seçince sağ panelde "VSM verileri" bölümü açılır:
+  çevrim süresi, setup/değişim, uptime (%), operatör sayısı ve "Gelişmiş alanlar" altında WIP/stok,
+  değer katan/katmayan süre, mesafe (m) ve not. Süreler sn/dk/saat, WIP adet/gün olarak seçilebilir.
+  Ondalık için virgül ya da nokta yazabilirsiniz. Boş bırakılan alan "veri yok" demektir; 0 ise gerçek
+  bir değerdir. Girilen değerler prosesin altındaki veri kutusunda görünür; kutu prosesle birlikte
+  taşınır ve "Veri kutusunu tuvalde göster" ile gizlenebilir.
+  Bir oka tıklayıp etiket yazın (ör. "Evet", "Hayır").
+- **VSM genel verileri ve özet:** Boş bir yere tıklayın (ya da üstteki "VSM verileri / özet" düğmesine
+  basın). Sağ panelde müşteri talebi (adet/gün), net çalışma süresi (dk/gün veya sn/gün; günlük toplam),
+  vardiya sayısı, sevkiyat sıklığı ve isteğe bağlı pitch girilir. Altındaki **VSM özeti** otomatik
+  hesaplanır: takt süresi (net süre ÷ talep), toplam değer katan / katmayan süre, lead time (ikisinin
+  toplamı) ve toplam mesafe. Çevrim süresi takt'tan büyük prosesler kırmızı "Takt üstü" ile işaretlenir.
+  **Hesaplanan değerler mavi italik ve ∑ işaretlidir**; elle girilen değerler normal yazılır.
+- **VSM sembolleri:** Paletteki "VSM" grubunda Müşteri, Tedarikçi (fabrika simgesi), Stok / envanter
+  (üçgen) ve Kaizen patlaması var. Müşteri simgesi harita talebini ve hesaplanan takt'ı gösterir.
+- **Ok türleri:** Paletteki "Yeni ok türü" ile sıradaki okların türünü seçin: Genel ok, Bilgi akışı (mavi
+  kesikli), Malzeme akışı / itme (kalın çizgili), Sevkiyat (kalın boş). Var olan bir okun türü, ok
+  seçilince sağ panelden değiştirilebilir.
+- **Zaman çizgisi:** "Tuvalin altında zaman çizgisini göster" ile açılır. VSM verisi girilmiş prosesler
+  tuvaldeki soldan sağa sırasıyla listelenir; üst satır değer katan, alt satır bekleme / değer katmayan
+  süredir; sağda toplam VA, NVA ve lead time hesaplanır. Proses adına tıklamak onu seçer.
+- **Silmek:** Seçip `Delete`/`Backspace` tuşuna basın ya da "Seçileni sil" düğmesini kullanın.
+- **Gezinmek:** Boş alanı sürükleyerek kaydırın, fare tekerleğiyle yakınlaştırın; "Sığdır" tüm çizimi ekrana sığdırır.
+- **Kaydetmek (yerel taslak):** Çizim otomatik olarak **yalnızca bu tarayıcıya** kaydedilir.
+- **Buluta kaydetmek:** "Giriş yap" → "Buluta kaydet" (ya da "Yeni bulut proje"). Bulut projesi
+  açıkken değişiklikler **otomatik değil**, **"Kaydet"** düğmesi ya da **Ctrl/⌘+S** ile buluta yazılır.
+  Durum üst çubukta görünür: "Kaydedilmemiş değişiklikler var", "Buluta kaydediliyor…",
+  "Buluta kaydedildi", hata mesajı.
+- **Projelerim:** Kendi bulut projelerinizi listeler; açma, yeniden adlandırma ve silme (onaylı) buradan
+  yapılır. **"Kopya olarak kaydet"** ekrandaki çizimi yeni bir proje olarak kaydeder.
+- **Yerel taslağa dön:** Bulut projesini kapatır ve yerel taslağı açar. Yerel taslak, bulut projesi
+  açıkken hiç değişmez.
+- **Başka yerde değişiklik:** Proje siz açtıktan sonra başka bir sekmede/cihazda kaydedildiyse, kaydederken
+  uyarılırsınız: "Benimkiyle üzerine yaz", "Kopya olarak kaydet" ya da "Vazgeç".
+- **Kaydedilmemiş bulut değişiklikleri** bu tarayıcıda geçici olarak yedeklenir; sayfa yenilense de
+  kaybolmaz. Oturum kapanmışsa değişiklikler ayrıca saklanır ve yerel taslak olarak geri açılabilir.
+- **Yedeklemek / paylaşmak:** "JSON dışa aktar" ile dosya indirin, "JSON içe aktar" ile geri açın
+  (her iki modda da çalışır).
+
+## Kayıt formatı
+
+JSON dosyası ve tarayıcı kaydı aynı biçimdedir (`src/model/types.ts`):
+
+```json
+{
+  "app": "akis-editoru",
+  "schemaVersion": 3,
+  "name": "Diyagram adı",
+  "savedAt": "2026-10-15T20:00:00.000Z",
+  "viewport": { "x": 0, "y": 0, "zoom": 1 },
+  "vsmMap": {
+    "fields": {
+      "customerDemand": { "value": 460, "unit": "adet/gün" },
+      "netWorkingTime": { "value": 460, "unit": "dk/gün" },
+      "shifts": { "value": 1, "unit": "vardiya" },
+      "shipmentFrequency": { "value": 1, "unit": "kez/gün" },
+      "pitch": { "value": null, "unit": "dk" }
+    },
+    "showTimeline": true
+  },
+  "nodes": [
+    { "id": "n-1", "kind": "process", "x": 100, "y": 50, "width": 180, "height": 80,
+      "data": { "title": "Kesim", "description": "", "color": "#dbeafe",
+        "vsm": {
+          "showDataBox": true,
+          "fields": {
+            "cycleTime": { "value": 45, "unit": "sn" },
+            "changeoverTime": { "value": 30, "unit": "dk" },
+            "uptime": { "value": 92, "unit": "%" },
+            "operators": { "value": 1, "unit": "kişi" },
+            "wip": { "value": 120, "unit": "adet" },
+            "valueAddedTime": { "value": 40, "unit": "sn" },
+            "nonValueAddedTime": { "value": null, "unit": "dk" },
+            "distance": { "value": 15, "unit": "m" }
+          },
+          "note": ""
+        } } }
+  ],
+  "edges": [
+    { "id": "e-1", "source": "n-1", "target": "n-2",
+      "sourceHandle": "right", "targetHandle": "left", "label": "Evet", "kind": "material" }
+  ]
+}
+```
+
+`vsm` alanı yalnızca `process` şekillerinde bulunur; `value: null` boş alan demektir.
+Şekil türleri (`kind`): `terminal`, `process`, `decision`, `department`, `note`, `customer`, `supplier`,
+`inventory`, `kaizen`. Bağlantı türleri (`kind`): `flow`, `info`, `material`, `shipment`.
+
+**Geriye uyumluluk:** Sürüm 1 ve 2 dosyaları açılmaya devam eder: prosesler boş VSM verisiyle, harita
+verisi boş olarak, oklar "genel ok" olarak gelir. Sürüm 3'te `vsmMap` alanlarının bir kısmı eksikse
+eksikler boş kabul edilir. Sürüm 2 dosyalarında eksik VSM alanları boş kabul edilir, `"12,5"` gibi metin
+olarak yazılmış sayılar sayıya çevrilir, proses olmayan şekillerdeki VSM verisi yok sayılır.
+Geçersiz birim, negatif değer, 100'ü aşan uptime ya da tam sayı olmayan operatör sayısı hata verir.
+
+İçe aktarılan dosya önce doğrulanır (uygulama adı, sürüm, kimlikler, konumlar, renkler, bağlantıların
+var olan şekillere gitmesi, boyut sınırları). Hatalı dosya yüklenirse hata mesajı gösterilir ve
+**mevcut çizim değişmez**. Geçerli dosya da ancak siz onayladıktan sonra açılır.
+
+## Mevcut sınırlamalar
+
+- **Giriş yalnızca misafir hesabıyla:** e-posta/şifre ile giriş ve hesaba e-posta bağlama henüz yok;
+  bu yüzden başka cihazdan aynı projelere ulaşılamaz (yukarıya bakın).
+- Bulut kaydı otomatik değil ("Kaydet" gerekir); gerçek zamanlı ortak düzenleme, paylaşım ve yorum yok.
+- Yerel taslak yalnızca bu tarayıcının yerel deposundadır; tarayıcı verileri temizlenirse kaybolur.
+- **Aynı anda birden fazla sekme** açarsanız sekmeler birbirinin kaydının üzerine yazar
+  (uygulama bunu fark edince uyarı gösterir). Tek sekmede çalışın.
+- Geri al / ileri al, kopyala / yapıştır yok.
+- Ok güzergâhları otomatiktir; elle büküm noktası eklenemez.
+- Departman şekli yalnızca görsel bir alandır; içindeki kutular onunla birlikte taşınmaz (gruplama yok).
+- Görsel (PNG/SVG/PDF) çıktı ve yazdırma yok.
+- Hesaplar yalnızca proseslere girilen değerlerden yapılır: stok üçgenlerindeki miktar/süre şimdilik
+  serbest metindir ve lead time'a katılmaz. Lead time = toplam değer katan + toplam değer katmayan süre.
+- Net çalışma süresi günlük toplam olarak girilir; vardiya sayısı yalnızca bilgi amaçlıdır, hesaba girmez.
+- Zaman çizgisi tuvalin altına sabitlenmiş bir şerittir; çizimle birlikte yakınlaşmaz ve çizimin alt
+  kısmını örtebilir (kapatılabilir). "Sığdır" onu hesaba katmaz.
+- Elektronik bilgi akışı (zikzak ok), kanban, süpermarket, FIFO gibi diğer VSM sembolleri henüz yok.
+- Veri kutusu prosesin altına taşar: alt kenardan çıkan oklar kutunun arkasından geçer (yan kenarları
+  kullanın) ve "Sığdır" veri kutusunu hesaba katmaz.
+- Masaüstü kullanımı için tasarlandı; dokunmatik/mobil kullanım denenmedi.
+- Tarayıcıda en fazla 2000 şekil ve 5000 bağlantı; içe aktarılan dosya en fazla 5 MB.
