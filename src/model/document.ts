@@ -16,6 +16,7 @@ import {
   EDGE_KINDS,
   HANDLE_SIDES,
   REMOVED_VSM_FIELD_KEYS,
+  REMOVED_VSM_MAP_FIELD_KEYS,
   SCHEMA_VERSION,
   SHAPE_KINDS,
   SUPPORTED_SCHEMA_VERSIONS,
@@ -225,6 +226,14 @@ export function parseDocument(raw: unknown): ParseResult {
   const rawEdges = raw.edges as unknown[];
   // Sürüm 3 öncesinde harita verisi yoktur; boş kabul edilir. Hata varsa aşağıda toplu döner.
   const vsmMap = parseVsmMap(raw.vsmMap, fail) ?? emptyVsmMap();
+  // Sürüm 5 öncesinde pitch elle girilirdi; artık takt × paket adedinden hesaplanıyor.
+  const droppedPitch =
+    isObject(raw.vsmMap) &&
+    isObject(raw.vsmMap.fields) &&
+    REMOVED_VSM_MAP_FIELD_KEYS.some((k) => {
+      const f = (raw.vsmMap as { fields: Record<string, unknown> }).fields[k];
+      return isObject(f) && f.value !== null && f.value !== undefined && f.value !== '';
+    });
   if (rawNodes.length > LIMITS.nodes) fail(`Çok fazla şekil var (en fazla ${LIMITS.nodes}).`);
   if (rawEdges.length > LIMITS.edges) fail(`Çok fazla bağlantı var (en fazla ${LIMITS.edges}).`);
   if (errors.length) return { ok: false, errors };
@@ -299,6 +308,12 @@ export function parseDocument(raw: unknown): ParseResult {
     warnings.push(
       `${removedValueCount} proseste eski "WIP / stok", "değer katan süre" ya da "değer katmayan süre" değerleri vardı. ` +
         'Klasik VSM yönteminde işlem süresi çevrim süresi (C/T), bekleme ise stok üçgenlerinden geldiği için bu alanlar kaldırıldı; değerler kullanılmadı.',
+    );
+  }
+  if (droppedPitch) {
+    warnings.push(
+      'Elle girilmiş "pitch" değeri kullanılmadı: pitch artık takt × paket adedi olarak hesaplanıyor. ' +
+        'Pitch görmek için VSM genel verilerine "paket adedi" girin.',
     );
   }
   return {

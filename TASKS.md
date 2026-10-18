@@ -59,6 +59,16 @@
 - [x] Kayıt formatı sürüm 4; eski dosyalar açılıyor, kaldırılan değerler için kullanıcıya not
 - [x] Örnek haritada prosesler arası WIP üçgenleri
 
+## Tamamlananlar (6. aşama: VSM analiz eksikleri, 1. grup)
+
+- [x] Takt – C/T grafiği (etkin C/T uzantısı, takt çizgisi, darboğaz etiketi)
+- [x] Darboğaz, teorik gereken operatör (⌈∑C/T ÷ takt⌉) ve mevcut operatör toplamı
+- [x] Veri kutusuna EPEI, hurda (%), parti büyüklüğü
+- [x] Etkin C/T = C/T ÷ uptime ÷ (1 − hurda); kapasite uyarısı (turuncu)
+- [x] Pitch = takt × paket adedi (elle pitch alanı kaldırıldı, eski değer için not)
+- [x] Zaman çizgisi akış oklarına göre sıralanıyor (geri dönüş okları yok sayılıyor)
+- [x] Kayıt formatı sürüm 5
+
 ## Bekleyen (kullanıcı tarafı)
 
 - [x] Supabase projesi oluşturma, SQL'i çalıştırma, anonim girişi açma, `.env.local` doldurma (README)

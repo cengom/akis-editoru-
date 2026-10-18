@@ -438,3 +438,73 @@ details.help { margin-bottom: 12px; }
 .tl-warn { color: #dc2626; }
 
 .inventory-stock { font-size: 11px; line-height: 1.3; }
+
+/* ---------- Kapasite uyarısı (etkin C/T) ---------- */
+.caution-box {
+  margin: 0;
+  padding: 8px 10px;
+  font-size: 12px;
+  line-height: 1.45;
+  background: #fffbeb;
+  border: 1px solid #fcd34d;
+  color: #78350f;
+  border-radius: 6px;
+}
+.caution-box ul { margin: 4px 0 0; padding-left: 16px; }
+.takt-badge.takt-badge-eff { background: #b45309; }
+
+/* ---------- Takt – C/T grafiği ---------- */
+.chart-title { font-size: 13px; margin: 6px 0 0; }
+.takt-chart { margin: 0; }
+.tc-plot { position: relative; display: grid; gap: 6px; padding-top: 18px; }
+.tc-takt {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 0;
+  border-left: 2px dashed #111827;
+  pointer-events: none;
+  z-index: 1;
+}
+.tc-takt span {
+  position: absolute;
+  top: 0;
+  left: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #111827;
+  white-space: nowrap;
+}
+.tc-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-areas: 'label value' 'track track';
+  gap: 2px 6px;
+  border: none;
+  background: none;
+  padding: 2px 0;
+  text-align: left;
+  border-radius: 4px;
+}
+.tc-row:hover { background: #f8fafc; }
+.tc-label { grid-area: label; font-size: 12px; color: #111827; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tc-value { grid-area: value; font-size: 12px; color: #374151; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.tc-track { grid-area: track; position: relative; height: 12px; background: #f1f5f9; border-radius: 4px; }
+.tc-bar, .tc-loss { position: absolute; top: 0; bottom: 0; }
+.tc-bar { left: 0; background: #3b82f6; border-radius: 4px 0 0 4px; }
+.tc-loss {
+  margin-left: 2px; /* yüzey boşluğu */
+  background: repeating-linear-gradient(45deg, #bfdbfe 0 3px, #eff6ff 3px 6px);
+  border-radius: 0 4px 4px 0;
+}
+.tc-over .tc-bar { background: #dc2626; }
+.tc-over .tc-value { color: #b91c1c; font-weight: 600; }
+.tc-over-eff .tc-loss { background: repeating-linear-gradient(45deg, #fcd34d 0 3px, #fffbeb 3px 6px); }
+.tc-over-eff .tc-value { color: #92400e; font-weight: 600; }
+.tc-tag { margin-left: 6px; font-size: 10px; font-weight: 700; color: #fff; background: #374151; padding: 0 5px; border-radius: 999px; }
+.tc-legend { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; margin-top: 6px; }
+.tc-key { display: inline-block; width: 12px; height: 8px; border-radius: 2px; margin-left: 6px; }
+.tc-key-bar { background: #3b82f6; margin-left: 0; }
+.tc-key-loss { background: repeating-linear-gradient(45deg, #bfdbfe 0 3px, #eff6ff 3px 6px); }
+.tc-key-takt { width: 0; height: 10px; border-left: 2px dashed #111827; border-radius: 0; }
+.tc-key-over { background: #dc2626; }

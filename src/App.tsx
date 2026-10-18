@@ -124,7 +124,7 @@ function Editor() {
   const selectedEdges = useMemo(() => edges.filter((e) => e.selected), [edges]);
 
   /* ---------- VSM hesapları ---------- */
-  const summary = useMemo(() => computeSummary(nodes, vsmMap), [nodes, vsmMap]);
+  const summary = useMemo(() => computeSummary(nodes, edges, vsmMap), [nodes, edges, vsmMap]);
   const taktSec = summary.takt.seconds;
   const demand = vsmMap.fields.customerDemand;
   // Sürükleme sırasında değişmez; şekiller gereksiz yere yeniden çizilmez.

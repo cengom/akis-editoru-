@@ -18,7 +18,9 @@ export function Timeline({ summary, onSelectNode, onClose }: Props) {
     <section className="timeline" aria-label="VSM zaman çizgisi" data-testid="zaman-cizgisi">
       <header>
         <strong>VSM zaman çizgisi</strong>
-        <span className="muted small">Stoklar ve prosesler tuvaldeki soldan sağa sırayla · boş alan "—"</span>
+        <span className="muted small">
+          {summary.orderedByArrows ? 'Sıra: akış oklarına göre' : 'Sıra: soldan sağa (ok yok)'} · boş alan "—"
+        </span>
         <button type="button" className="icon" onClick={onClose} aria-label="Zaman çizgisini gizle" title="Gizle">
           ×
         </button>

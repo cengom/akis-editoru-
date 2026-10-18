@@ -70,7 +70,7 @@ function exampleMap(): VsmMapData {
   map.fields.netWorkingTime = { value: 460, unit: 'dk/gün' };
   map.fields.shifts = { value: 1, unit: 'vardiya' };
   map.fields.shipmentFrequency = { value: 1, unit: 'kez/gün' };
-  map.fields.pitch = { value: 20, unit: 'dk' };
+  map.fields.packQuantity = { value: 20, unit: 'adet' };
   map.showTimeline = true;
   return map;
 }
@@ -94,11 +94,14 @@ export function createExampleDocument(): DiagramDocument {
       withVsm(
         node('kesim', 'process', 710, 50, 'Kesim'),
         vsm({
-          cycleTime: [45, 'sn'],
+          cycleTime: [50, 'sn'],
           changeoverTime: [30, 'dk'],
-          uptime: [92, '%'],
+          uptime: [85, '%'],
           operators: [1, 'kişi'],
           distance: [15, 'm'],
+          epei: [2, 'gün'],
+          scrapRate: [3, '%'],
+          batchSize: [120, 'adet'],
         }),
       ),
       withVsm(
@@ -109,6 +112,8 @@ export function createExampleDocument(): DiagramDocument {
           uptime: [98, '%'],
           operators: [2, 'kişi'],
           distance: [8, 'm'],
+          scrapRate: [1, '%'],
+          batchSize: [60, 'adet'],
         }),
       ),
       node('kalite', 'process', 1190, 50, 'Kalite kontrol', 'Örnek ölçüm yapılır.'),
@@ -123,6 +128,7 @@ export function createExampleDocument(): DiagramDocument {
             uptime: [99, '%'],
             operators: [1, 'kişi'],
             distance: [25, 'm'],
+            batchSize: [20, 'adet'],
           },
           'Değerler örnektir.',
         ),

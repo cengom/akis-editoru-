@@ -47,6 +47,17 @@ export const VSM_FIELDS: readonly VsmFieldSpec[] = [
   { key: 'uptime', label: 'Uptime', short: 'Uptime', units: ['%'], defaultUnit: '%', max: 100, advanced: false },
   { key: 'operators', label: 'Operatör sayısı', short: 'Operatör', units: ['kişi'], defaultUnit: 'kişi', integer: true, advanced: false },
   { key: 'distance', label: 'Mesafe', short: 'Mesafe', units: ['m'], defaultUnit: 'm', advanced: true },
+  {
+    key: 'epei',
+    label: 'EPEI',
+    short: 'EPEI',
+    units: ['saat', 'gün', 'hafta'],
+    defaultUnit: 'gün',
+    advanced: true,
+    hint: 'Her parça her …: tüm ürün çeşitlerini bir kez üretme döngüsü.',
+  },
+  { key: 'scrapRate', label: 'Hurda / ret', short: 'Hurda', units: ['%'], defaultUnit: '%', max: 100, advanced: true },
+  { key: 'batchSize', label: 'Parti büyüklüğü', short: 'Parti', units: ['adet'], defaultUnit: 'adet', integer: true, advanced: true },
 ];
 
 /* ---------- Stok üçgeni ---------- */
@@ -87,7 +98,16 @@ export const VSM_MAP_FIELDS: readonly VsmMapFieldSpec[] = [
     defaultUnit: 'kez/gün',
     advanced: false,
   },
-  { key: 'pitch', label: 'Pitch', short: 'Pitch', units: TIME_UNITS, defaultUnit: 'dk', advanced: true, hint: 'İsteğe bağlı.' },
+  {
+    key: 'packQuantity',
+    label: 'Paket adedi',
+    short: 'Paket',
+    units: ['adet'],
+    defaultUnit: 'adet',
+    integer: true,
+    advanced: true,
+    hint: 'Bir kap/kutudaki adet. Pitch = takt × paket adedi (hesaplanır).',
+  },
 ];
 
 export const VSM_MAP_FIELD_SPECS = Object.fromEntries(VSM_MAP_FIELDS.map((f) => [f.key, f])) as Record<

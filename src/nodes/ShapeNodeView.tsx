@@ -3,7 +3,7 @@ import { Handle, NodeResizer, Position, type NodeProps, type NodeTypes } from '@
 import { VsmCanvasContext } from '../components/VsmCanvasContext';
 import { SHAPES, readableTextColor } from '../model/shapes';
 import { HANDLE_SIDES, SHAPE_KINDS, type HandleSide, type ShapeKind, type ShapeNode, type VsmData, type VsmQuantity } from '../model/types';
-import { inventoryDays, isOverTakt } from '../model/vsmCalc';
+import { effectiveCycleSeconds, inventoryDays, isOverTakt } from '../model/vsmCalc';
 import { VSM_FIELDS, formatDays, formatDuration, formatNumber, formatQuantity, hasVsmContent, toSeconds } from '../model/vsm';
 
 const POSITIONS: Record<HandleSide, Position> = {
@@ -33,6 +33,7 @@ function ShapeNodeView({ type, data, selected }: NodeProps<ShapeNode>) {
   const spec = SHAPES[kind];
   const { taktSec, demand } = useContext(VsmCanvasContext);
   const overTakt = kind === 'process' && !!data.vsm && isOverTakt(toSeconds(data.vsm.fields.cycleTime), taktSec);
+  const overEffective = kind === 'process' && !!data.vsm && !overTakt && isOverTakt(effectiveCycleSeconds(data.vsm), taktSec);
   const outline = OUTLINES[kind];
   const style = {
     '--shape-color': data.color,
@@ -69,6 +70,11 @@ function ShapeNodeView({ type, data, selected }: NodeProps<ShapeNode>) {
       {overTakt && (
         <div className="takt-badge" title="Çevrim süresi takt süresinden büyük">
           ⚠ Takt üstü
+        </div>
+      )}
+      {overEffective && (
+        <div className="takt-badge takt-badge-eff" title="Uptime ve hurda dahil etkin çevrim süresi takt süresinden büyük">
+          ⚠ Etkin C/T takt üstü
         </div>
       )}
       {kind === 'process' && data.vsm?.showDataBox && hasVsmContent(data.vsm) && (

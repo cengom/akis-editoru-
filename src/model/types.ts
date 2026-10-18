@@ -6,10 +6,12 @@ import type { Edge, Node } from '@xyflow/react';
  * 3: harita düzeyi VSM verileri (`vsmMap`), VSM şekilleri ve bağlantı türleri (`edge.kind`).
  * 4: klasik VSM yöntemi — proseste "değer katan/katmayan süre" ve "WIP" alanları kaldırıldı;
  *    stok verisi stok üçgenlerinde (`data.inventory`). İşlem süresi = çevrim süresi (C/T).
+ * 5: proseste EPEI, hurda (%) ve parti büyüklüğü; haritada elle girilen "pitch" yerine "paket adedi"
+ *    (pitch artık takt × paket adedi olarak hesaplanır).
  * Eski sürüm dosyaları hâlâ açılır; eksik alanlar boş kabul edilir, kaldırılan alanlar yok sayılır.
  */
-export const SCHEMA_VERSION = 4 as const;
-export const SUPPORTED_SCHEMA_VERSIONS = [1, 2, 3, 4] as const;
+export const SCHEMA_VERSION = 5 as const;
+export const SUPPORTED_SCHEMA_VERSIONS = [1, 2, 3, 4, 5] as const;
 
 /** Dosyanın bu uygulamaya ait olduğunu gösteren işaret. */
 export const APP_ID = 'akis-editoru' as const;
@@ -49,6 +51,9 @@ export const VSM_FIELD_KEYS = [
   'uptime',
   'operators',
   'distance',
+  'epei',
+  'scrapRate',
+  'batchSize',
 ] as const;
 
 /** Sürüm 4'te kaldırılan proses alanları (eski dosyalarda bulunabilir; okunmaz). */
@@ -73,6 +78,7 @@ export const VSM_UNITS = [
   'kez/gün',
   'kez/hafta',
   'kez/ay',
+  'hafta',
 ] as const;
 export type VsmUnit = (typeof VSM_UNITS)[number];
 
@@ -99,7 +105,10 @@ export interface InventoryData {
 }
 
 /** Harita (hat) düzeyindeki VSM alanları. */
-export const VSM_MAP_FIELD_KEYS = ['customerDemand', 'netWorkingTime', 'shifts', 'shipmentFrequency', 'pitch'] as const;
+export const VSM_MAP_FIELD_KEYS = ['customerDemand', 'netWorkingTime', 'shifts', 'shipmentFrequency', 'packQuantity'] as const;
+
+/** Sürüm 5'te kaldırılan harita alanları (pitch artık hesaplanıyor). */
+export const REMOVED_VSM_MAP_FIELD_KEYS = ['pitch'] as const;
 export type VsmMapFieldKey = (typeof VSM_MAP_FIELD_KEYS)[number];
 
 /** Haritanın genel VSM verileri ve görünüm tercihleri. */

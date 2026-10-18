@@ -2,6 +2,7 @@ import type { VsmMapData } from '../model/types';
 import type { Total, VsmSummary } from '../model/vsmCalc';
 import { VSM_MAP_FIELDS, formatDays, formatDuration, formatNumber, formatPercent } from '../model/vsm';
 import { QuantityTable } from './QuantityFields';
+import { TaktChart } from './TaktChart';
 
 interface Props {
   vsmMap: VsmMapData;
@@ -91,7 +92,44 @@ export function MapPanel({ vsmMap, summary, onChange, onSelectNode }: Props) {
               testId="ozet-mesafe"
             />
           </dd>
+          <dt>Darboğaz (en büyük C/T)</dt>
+          <dd>
+            {summary.bottleneck ? (
+              <span className="calc-value" data-testid="ozet-darbogaz">
+                {summary.bottleneck.title} · {formatDuration(summary.bottleneck.cycleSec!)}
+              </span>
+            ) : (
+              <span className="muted small">Veri yok</span>
+            )}
+          </dd>
+          <dt>Gereken operatör (teorik)</dt>
+          <dd>
+            {summary.requiredOperators === null ? (
+              <span className="muted small">Takt ve C/T gerekli</span>
+            ) : (
+              <>
+                <span className="calc-value" data-testid="ozet-operator" title="⌈ toplam C/T ÷ takt ⌉">
+                  {summary.requiredOperators} kişi
+                </span>
+                {summary.currentOperators.value !== null && (
+                  <span className="muted small"> (şu an {formatNumber(summary.currentOperators.value)})</span>
+                )}
+              </>
+            )}
+          </dd>
+          <dt>Pitch</dt>
+          <dd>
+            {summary.pitchSec === null ? (
+              <span className="muted small">{summary.pitchReason}</span>
+            ) : (
+              <span className="calc-value" data-testid="ozet-pitch" title="takt × paket adedi">
+                {formatDuration(summary.pitchSec)}
+              </span>
+            )}
+          </dd>
         </dl>
+        <h4 className="chart-title">Takt – çevrim süresi</h4>
+        <TaktChart summary={summary} onSelectNode={onSelectNode} />
         {summary.inventoriesMissingDemand > 0 && (
           <p className="warning-box">
             {summary.inventoriesMissingDemand} stok üçgeninde miktar adet olarak girildi ama müşteri talebi yok; bekleme
@@ -117,9 +155,25 @@ export function MapPanel({ vsmMap, summary, onChange, onSelectNode }: Props) {
             </ul>
           </div>
         )}
+        {summary.overTaktEffective.length > 0 && (
+          <div className="caution-box" data-testid="etkin-takt-uyarilari">
+            <strong>⚠ Duruş/hurda nedeniyle kapasitesi yetmeyebilecek prosesler</strong>
+            <ul>
+              {summary.overTaktEffective.map((p) => (
+                <li key={p.id}>
+                  <button type="button" className="link" onClick={() => onSelectNode(p.id)}>
+                    {p.title}
+                  </button>
+                  : etkin C/T {formatDuration(p.effectiveCycleSec!)} &gt; takt {formatDuration(summary.takt.seconds!)}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
         <p className="muted small">
           Klasik VSM yöntemi: işlem süresi proseslerin çevrim süresidir (C/T); bekleme stok üçgenlerinden gelir (adet ÷
-          günlük talep). Lead time = bekleme + işlem süresi. Boş alanlar toplama katılmaz; 0 katılır.
+          günlük talep). Lead time = bekleme + işlem süresi. Etkin C/T = C/T ÷ uptime ÷ (1 − hurda); yalnızca kapasite
+          karşılaştırmasında kullanılır. Boş alanlar toplama katılmaz; 0 katılır.
         </p>
       </section>
     </div>

@@ -3,7 +3,7 @@ import { LIMITS } from '../model/document';
 import { EDGE_KIND_SPECS } from '../model/edges';
 import { EDGE_KINDS, type EdgeKind, type FlowEdge, type ShapeData, type ShapeKind, type InventoryData, type ShapeNode, type VsmData, type VsmMapData, type VsmQuantity } from '../model/types';
 import { INVENTORY_FIELDS, VSM_FIELDS, VSM_LIMITS, emptyInventory, emptyVsm, formatDays, formatDuration, toSeconds } from '../model/vsm';
-import { inventoryDays, isOverTakt, type VsmSummary } from '../model/vsmCalc';
+import { effectiveCycleSeconds, inventoryDays, isOverTakt, type VsmSummary } from '../model/vsmCalc';
 import { MapPanel } from './MapPanel';
 import { QuantityTable } from './QuantityFields';
 
@@ -228,6 +228,9 @@ function VsmEditor({ vsm, taktSec, onChange }: { vsm: VsmData; taktSec: number |
     onChange({ ...vsm, fields: { ...vsm.fields, [key]: q } });
   const cycleSec = toSeconds(vsm.fields.cycleTime);
   const over = isOverTakt(cycleSec, taktSec);
+  const effective = effectiveCycleSeconds(vsm);
+  const showEffective = effective !== null && cycleSec !== null && effective > cycleSec + 1e-9;
+  const overEffective = !over && isOverTakt(effective, taktSec);
 
   return (
     <section className="vsm-section" aria-label="VSM verileri">
@@ -248,7 +251,18 @@ function VsmEditor({ vsm, taktSec, onChange }: { vsm: VsmData; taktSec: number |
           <span className="calc-value">{formatDuration(taktSec!)}</span>) büyük. Bu proses talebi karşılayamayabilir.
         </p>
       )}
-      {!over && taktSec !== null && cycleSec !== null && (
+      {showEffective && (
+        <p className="small" data-testid="etkin-ct">
+          Etkin C/T (uptime ve hurda dahil): <span className="calc-value">{formatDuration(effective!)}</span>
+        </p>
+      )}
+      {overEffective && (
+        <p className="caution-box small" data-testid="proses-etkin-uyari">
+          ⚠ C/T takt altında ama duruş ve hurda hesaba katılınca etkin C/T (
+          <span className="calc-value">{formatDuration(effective!)}</span>) takt süresini aşıyor.
+        </p>
+      )}
+      {!over && !overEffective && taktSec !== null && cycleSec !== null && (
         <p className="ok-box small">
           Çevrim süresi takt süresinin (<span className="calc-value">{formatDuration(taktSec)}</span>) altında.
         </p>
