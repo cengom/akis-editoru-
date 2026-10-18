@@ -33,7 +33,7 @@ const OUTLINES: Partial<Record<ShapeKind, string>> = {
 function ShapeNodeView({ id, type, data, selected }: NodeProps<ShapeNode>) {
   const kind = type as ShapeKind;
   const spec = SHAPES[kind];
-  const { taktSec, demand, colorByTakt, netSec, processStatus, dimmed, families, stockDemandOf } = useContext(VsmCanvasContext);
+  const { taktSec, demand, colorByTakt, netSec, processStatus, dimmed, families, pacemakerId, stockDemandOf } = useContext(VsmCanvasContext);
   // Takt durumu özetten gelir (ürün ailesine duyarlı).
   const status = kind === 'process' ? processStatus[id] : undefined;
   const overTakt = !!status?.overTakt;
@@ -82,6 +82,11 @@ function ShapeNodeView({ id, type, data, selected }: NodeProps<ShapeNode>) {
           {data.description && <div className="shape-desc">{data.description}</div>}
           {kind === 'customer' && <CustomerInfo demand={demand} taktSec={taktSec} />}
           {kind === 'kaizen' && data.kaizen && <KaizenChip kaizen={data.kaizen} />}
+        </div>
+      )}
+      {kind === 'process' && pacemakerId === id && (
+        <div className="pacemaker-badge" title="Hız belirleyici proses (pacemaker): üretim çizelgesi buraya verilir" data-testid="hiz-belirleyici-rozet">
+          ⏱ Hız belirleyici
         </div>
       )}
       {overTakt && (

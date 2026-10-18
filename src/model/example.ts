@@ -118,6 +118,7 @@ export function createExampleDocument(): DiagramDocument {
           scrapRate: [3, '%'],
           batchSize: [120, 'adet'],
           idealCycleTime: [45, 'sn'],
+          partTypes: [3, 'çeşit'],
         }),
       ),
       withVsm(
@@ -150,6 +151,7 @@ export function createExampleDocument(): DiagramDocument {
             // Uptime boş: kullanılabilirlik duruş ve değişimlerden hesaplanır
             unplannedDowntime: [10, 'dk/gün'],
             changeoversPerDay: [2, 'kez/gün'],
+            partTypes: [2, 'çeşit'],
           },
           'Değerler örnektir.',
         ),
@@ -209,7 +211,7 @@ export function createExampleDocument(): DiagramDocument {
 
 /**
  * Örnek gelecek durum (hedef) haritası: mevcut haritanın kopyası üzerinde iyileştirmeler.
- * Montaj kaizen ile 55 sn'ye iner; Kesim sonrası stok süpermarket, Montaj sonrası stok FIFO olur;
+ * Paketleme hız belirleyicidir. Montaj kaizen ile 55 sn'ye iner; Kesim sonrası stok süpermarket, Montaj sonrası stok FIFO olur;
  * stoklar azalır. Uydurma değerlerdir.
  */
 function exampleFuture(current: StateContent): StateContent {
@@ -231,6 +233,8 @@ function exampleFuture(current: StateContent): StateContent {
   fifo.data = { ...fifo.data, title: 'FIFO', color: '#ffffff', inventory: { ...emptyInventory(), stock: { value: 0.25, unit: 'gün' } } };
   byId('stok-hammadde').data.inventory!.stock = { value: 1, unit: 'gün' };
   byId('stok-mamul').data.inventory!.stock = { value: 150, unit: 'adet' };
+  // Hız belirleyici: Paketleme (müşteriye en yakın proses; sonrası yalnızca sevkiyat)
+  c.vsmMap.pacemakerId = 'paket';
   byId('kaizen-1').data.kaizen = { owner: 'Üretim mühendisliği', dueDate: '2026-12-15', status: 'done' };
   const pull = c.edges.find((e) => e.id === 'e-kesim-montaj');
   if (pull) Object.assign(pull, { kind: 'pull', label: 'Çekme' });

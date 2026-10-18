@@ -104,7 +104,7 @@
 - [x] Birden fazla ürün ailesi, karma model (aile talebi/takt, ürün–proses matrisi, proses yükü, aile görünümü) — sürüm 8
 - [x] Otomatik hesap testleri (Vitest, `npm test`): takt, OEE, stok günü, lead time, aileler, eski sürüm geçişleri
 - [x] Hata ekranı: beyaz sayfa yerine kaydı indirme ve yedeğe alıp yeniden başlama
-- [ ] VSM yöntem eksikleri: parti bekleme (proses lead time), hız belirleyici proses, EPEI hesabı
+- [x] Parti beklemesi (isteğe bağlı lead time'a ekleme), hız belirleyici proses ve akış kontrolleri, EPEI hesabı — sürüm 9
 - [ ] Testleri GitHub'da her push'ta otomatik çalıştırma (GitHub Actions, ücretsiz)
 - [ ] Zaman çizgisini tuval koordinatlarında (çizimle birlikte yakınlaşan) seçenek olarak sunmak
 - [ ] Vardiya başına net süre girişi (günlük toplamı otomatik hesaplama)

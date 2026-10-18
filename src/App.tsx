@@ -187,6 +187,7 @@ function Editor() {
       : [],
   );
   const families = vsmMap.families;
+  const pacemakerId = vsmMap.pacemakerId;
   const canvasInfo = useMemo<VsmCanvasInfo>(() => {
     const processStatus: VsmCanvasInfo['processStatus'] = {};
     for (const [id, over, eff, ratio] of JSON.parse(statusKey) as [string, boolean, boolean, number | null][]) {
@@ -200,9 +201,10 @@ function Editor() {
       processStatus,
       dimmed: JSON.parse(dimmedKey) as string[],
       families,
+      pacemakerId,
       stockDemandOf: (inv) => stockDemand(inv, { ...vsmMap, families }),
     };
-  }, [taktSec, demand, colorByTakt, netSec, statusKey, dimmedKey, families]);
+  }, [taktSec, demand, colorByTakt, netSec, statusKey, dimmedKey, families, pacemakerId]);
 
   /* ---------- Başka sekmede yapılan değişiklik uyarısı ---------- */
   useEffect(() => {

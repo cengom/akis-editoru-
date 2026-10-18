@@ -114,6 +114,18 @@ Uygulama tek sayfalık statik bir sitedir; sunucu kodu yoktur.
   girilen uptime'dır; uptime boşsa **plansız duruş** (dk/gün) ve **değişim sayısı** (× C/O) ile net
   çalışma süresinden hesaplanır. Panelde dört çubuk, %85 hedefi, eksik bileşen notu ve günlük kapasite
   ile talep yükü görünür; veri kutusunda OEE satırı, özette proses bazında OEE tablosu vardır.
+- **Parti beklemesi:** Parti büyüklüğü girilen proseste bir parça, partinin geri kalanını bekler:
+  parti beklemesi = (parti − 1) × C/T. Özette toplamı görünür. Klasik VSM'de lead time'a eklenmez;
+  "Parti beklemesini lead time'a ekle" seçilirse eklenir ve zaman çizgisinde "+ parti" olarak görünür.
+- **Hız belirleyici proses (pacemaker):** Proses panelinde "⏱ Hız belirleyici proses" işaretlenir (haritada
+  bir tane olur; tuvalde rozet çıkar). Seçilmediyse özet akıştaki son prosesi önerir. Hız belirleyiciden
+  sonra itme stoğu (üçgen), süpermarket ya da itme oku varsa ve hız belirleyici takt üstüyse uyarı verir
+  (sonrası FIFO ya da sürekli akış olmalı). Son prosesten sonraki mamul stoğu uyarı almaz.
+- **EPEI hesabı:** Gelişmiş alanlarda **ürün çeşidi sayısı** girilirse (ya da birden çok aile prosesten
+  geçiyorsa) en kısa olası EPEI hesaplanır: EPEI = (çeşit × C/O) ÷ (kullanılabilir süre − üretim süresi).
+  Kullanılabilir süre = net süre − plansız duruş; üretim süresi = Σ(talep × C/T) ÷ (1 − hurda). Elle girilen
+  EPEI bundan kısaysa "değişime zaman yetmez" uyarısı çıkar. Bir döngüde üretilecek miktar (talep × EPEI)
+  de gösterilir.
 - **Birden fazla ürün ailesi (karma model):** "VSM verileri / özet" panelinde "+ Ürün ailesi ekle" ile
   en fazla 8 aile tanımlanır (ad, talep, paket adedi; renk otomatik). Proses seçilince "Ürün aileleri"
   bölümünde o prosesten geçen aileler işaretlenir (en az biri) ve gerekirse aileye özel C/T girilir; boş
@@ -206,7 +218,7 @@ JSON dosyası ve tarayıcı kaydı aynı biçimdedir (`src/model/types.ts`):
 ```json
 {
   "app": "akis-editoru",
-  "schemaVersion": 8,
+  "schemaVersion": 9,
   "name": "Diyagram adı",
   "savedAt": "2026-10-15T20:00:00.000Z",
   "viewport": { "x": 0, "y": 0, "zoom": 1 },
@@ -221,6 +233,8 @@ JSON dosyası ve tarayıcı kaydı aynı biçimdedir (`src/model/types.ts`):
         "demand": { "value": 460, "unit": "adet/gün" }, "packQuantity": { "value": 20, "unit": "adet" } }
     ],
     "familyView": "all",
+    "pacemakerId": null,
+    "includeBatchWait": false,
     "showTimeline": true,
     "colorByTakt": false
   },
@@ -250,6 +264,11 @@ JSON dosyası ve tarayıcı kaydı aynı biçimdedir (`src/model/types.ts`):
 (`inventory`) `"inventory": { "stock": { "value": 120, "unit": "adet" } }` taşır (birim `adet` ya da `gün`).
 Şekil türleri (`kind`): `terminal`, `process`, `decision`, `department`, `note`, `customer`, `supplier`,
 `inventory`, `kaizen`. Bağlantı türleri (`kind`): `flow`, `info`, `material`, `shipment`.
+
+**Sürüm 9 değişikliği:** `vsmMap.pacemakerId` (hız belirleyici proses; yoksa `null`),
+`vsmMap.includeBatchWait` (parti beklemesi lead time'a eklensin mi; varsayılan `false`) ve proseste
+`partTypes` alanı (ürün çeşidi sayısı, birim `çeşit`). Eski dosyalarda boş / kapalı gelir; olmayan bir
+şekli gösteren `pacemakerId` okunurken kaldırılır.
 
 **Sürüm 8 değişikliği:** Ürün aileleri. Müşteri talebi ve paket adedi harita alanlarından
 `vsmMap.families` listesine taşındı; `vsmMap.familyView` seçili görünümü tutar. Proses VSM verisinde

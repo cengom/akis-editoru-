@@ -64,6 +64,18 @@ export function MapPanel({ vsmMap, summary, kaizens, compare, onChange, onSelect
           />
           Prosesleri takta göre renklendir
         </label>
+        <label className="check">
+          <input
+            type="checkbox"
+            checked={vsmMap.includeBatchWait}
+            onChange={(e) => onChange({ ...vsmMap, includeBatchWait: e.target.checked })}
+            data-testid="parti-lt"
+          />
+          Parti beklemesini lead time'a ekle
+        </label>
+        <p className="muted small">
+          Parti beklemesi = (parti − 1) × C/T. Klasik VSM'de lead time'a eklenmez; büyük partilerin etkisini görmek için açın.
+        </p>
         {vsmMap.colorByTakt && (
           <p className="color-legend small">
             <span className="sw sw-ok" /> etkin C/T ≤ %85 takt <span className="sw sw-near" /> ≤ %100 <span className="sw sw-over" /> takt
@@ -125,7 +137,16 @@ export function MapPanel({ vsmMap, summary, kaizens, compare, onChange, onSelect
           <dd>
             <TotalValue total={summary.waitDays} count={summary.inventories.length} format={formatDays} testId="ozet-bekleme" />
           </dd>
-          <dt>Üretim lead time</dt>
+          <dt>Parti beklemesi (∑)</dt>
+          <dd>
+            <TotalValue
+              total={summary.batchWaitSec}
+              count={summary.processes.length}
+              format={(v) => `${formatDuration(v)}${summary.leadTimeIncludesBatchWait ? ' · lead time\'a dahil' : ' · lead time\'a dahil değil'}`}
+              testId="ozet-parti"
+            />
+          </dd>
+          <dt>Üretim lead time{summary.leadTimeIncludesBatchWait ? ' (parti dahil)' : ''}</dt>
           <dd>
             {summary.leadTimeDays === null ? (
               <span className="muted small">Veri yok</span>
@@ -177,6 +198,31 @@ export function MapPanel({ vsmMap, summary, kaizens, compare, onChange, onSelect
                   <span className="muted small"> (şu an {formatNumber(summary.currentOperators.value)})</span>
                 )}
               </>
+            )}
+          </dd>
+          <dt>Hız belirleyici (pacemaker)</dt>
+          <dd data-testid="ozet-hiz-belirleyici">
+            {summary.pacemaker.id ? (
+              <button type="button" className="link" onClick={() => onSelectNode(summary.pacemaker.id!)}>
+                ⏱ {summary.pacemaker.title}
+              </button>
+            ) : (
+              <span className="muted small">
+                Seçilmedi.
+                {summary.pacemaker.suggestion && (
+                  <>
+                    {' '}
+                    <button
+                      type="button"
+                      className="link"
+                      onClick={() => onChange({ ...vsmMap, pacemakerId: summary.pacemaker.suggestion!.id })}
+                      data-testid="hiz-belirleyici-oner"
+                    >
+                      {summary.pacemaker.suggestion.title} seçilsin mi?
+                    </button>
+                  </>
+                )}
+              </span>
             )}
           </dd>
           <dt>Pitch</dt>
@@ -240,9 +286,23 @@ export function MapPanel({ vsmMap, summary, kaizens, compare, onChange, onSelect
             </ul>
           </div>
         )}
+        {summary.pacemaker.warnings.length > 0 && (
+          <div className="caution-box" data-testid="hiz-belirleyici-uyarilari">
+            <strong>⏱ Hız belirleyici sonrası akış</strong>
+            <ul>
+              {summary.pacemaker.warnings.map((w, i) => (
+                <li key={w.id + i}>
+                  <button type="button" className="link" onClick={() => onSelectNode(w.id)}>
+                    {w.text}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
         <p className="muted small">
           Klasik VSM yöntemi: işlem süresi proseslerin çevrim süresidir (C/T); bekleme stok üçgenlerinden gelir (adet ÷
-          günlük talep). Lead time = bekleme + işlem süresi. Etkin C/T = C/T ÷ uptime ÷ (1 − hurda); yalnızca kapasite
+          günlük talep). Lead time = bekleme + işlem süresi (isteğe bağlı: + parti beklemesi). Etkin C/T = C/T ÷ uptime ÷ (1 − hurda); yalnızca kapasite
           karşılaştırmasında kullanılır. Boş alanlar toplama katılmaz; 0 katılır.
         </p>
       </section>

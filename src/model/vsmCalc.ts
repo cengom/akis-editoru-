@@ -136,6 +136,87 @@ export function familyLoad(vsm: VsmData, map: VsmMapData, netSec: number | null)
   };
 }
 
+/* ---------- EPEI ---------- */
+
+export interface EpeiResult {
+  /** Hesaplanan en kısa EPEI (iş günü); hesaplanamıyorsa `null` */
+  days: number | null;
+  /** Hesapta kullanılan çeşit sayısı ve kaynağı */
+  partTypes: number | null;
+  partTypesSource: 'manual' | 'families' | null;
+  /** Günlük kullanılabilir süre (sn) = net süre − plansız duruş */
+  availableSec: number | null;
+  /** Günlük üretim süresi (sn) = Σ(talep × C/T) ÷ (1 − hurda) */
+  productionSec: number | null;
+  /** Değişime kalan süre (sn/gün) */
+  spareSec: number | null;
+  /** Bir tam döngüdeki toplam değişim süresi (sn) = çeşit × C/O */
+  cycleChangeoverSec: number | null;
+  reason: string | null;
+  notes: string[];
+  /** Elle girilen EPEI (iş günü) */
+  enteredDays: number | null;
+  /** Elle girilen EPEI hesaplanandan kısa: bu sıklıkta değişime zaman yetmez */
+  enteredTooShort: boolean;
+}
+
+/** Elle girilen EPEI'yi iş gününe çevirir (saat: net süreyle; hafta: 5 iş günü). */
+function epeiDays(q: VsmQuantity, netSec: number | null): number | null {
+  if (q.value === null) return null;
+  if (q.unit === 'gün') return q.value;
+  if (q.unit === 'hafta') return q.value * 5;
+  if (q.unit === 'saat') return netSec && netSec > 0 ? (q.value * 3600) / netSec : null;
+  return null;
+}
+
+/**
+ * En kısa EPEI (her parça her …): günlük üretimden arta kalan süre, tüm çeşitleri bir kez değiştirmeye
+ * kaç günde yeter? EPEI = (çeşit sayısı × C/O) ÷ (kullanılabilir süre − üretim süresi).
+ * Kullanılabilir süre = net süre − plansız duruş (uptime kullanılmaz; çünkü uptime çoğu zaman değişim
+ * kaybını zaten içerir). Üretim süresi tüm geçen ailelerin talebiyle hesaplanır (görünümden bağımsız).
+ */
+export function epeiOf(vsm: VsmData, map: VsmMapData, netSec: number | null): EpeiResult {
+  const f = vsm.fields;
+  const notes: string[] = [];
+  const passing = passingFamilies(vsm, map);
+  const manualTypes = f.partTypes.value;
+  const partTypes = manualTypes ?? (isMultiFamily(map) ? passing.length : null);
+  const partTypesSource = manualTypes !== null ? 'manual' : partTypes !== null ? 'families' : null;
+  const enteredDays = epeiDays(f.epei, netSec);
+  const base: EpeiResult = {
+    days: null,
+    partTypes,
+    partTypesSource,
+    availableSec: null,
+    productionSec: null,
+    spareSec: null,
+    cycleChangeoverSec: null,
+    reason: null,
+    notes,
+    enteredDays,
+    enteredTooShort: false,
+  };
+  if (!netSec || netSec <= 0) return { ...base, reason: 'Net çalışma süresi gerekli.' };
+  if (partTypes === null) return { ...base, reason: 'Ürün çeşidi sayısını girin (Gelişmiş alanlar).' };
+  if (partTypes <= 1) return { ...base, reason: 'Tek çeşit üretiliyor; çeşit değişimi gerekmez.' };
+  const co = toSeconds(f.changeoverTime);
+  if (co === null) return { ...base, reason: 'Setup (C/O) süresi gerekli.' };
+  const { rawLoad } = familyLoad(vsm, map, netSec);
+  if (rawLoad === null) return { ...base, reason: 'Talep ve C/T gerekli.' };
+  const quality = f.scrapRate.value === null ? 1 : 1 - f.scrapRate.value / 100;
+  if (quality <= 0) return { ...base, reason: 'Hurda %100: üretim yok.' };
+  const productionSec = (rawLoad * netSec) / quality;
+  const downtime = f.unplannedDowntime.value;
+  if (downtime === null) notes.push('Plansız duruş girilmedi; net sürenin tamamı kullanılabilir sayıldı.');
+  const availableSec = netSec - (downtime ?? 0) * 60;
+  const spareSec = availableSec - productionSec;
+  const cycleChangeoverSec = partTypes * co;
+  const filled = { ...base, availableSec, productionSec, spareSec, cycleChangeoverSec };
+  if (spareSec <= 0) return { ...filled, reason: 'Üretimden sonra değişime zaman kalmıyor (kapasite dolu).' };
+  const days = cycleChangeoverSec / spareSec;
+  return { ...filled, days, enteredTooShort: enteredDays !== null && enteredDays < days - 1e-9 };
+}
+
 /** Çevrim süresi takt süresinden büyükse true. */
 export function isOverTakt(cycleSeconds: number | null, taktSeconds: number | null): boolean {
   return cycleSeconds !== null && taktSeconds !== null && cycleSeconds > taktSeconds;
@@ -207,6 +288,10 @@ export interface ProcessStep {
   load: number | null;
   /** Prosesten geçen aileler */
   familyIds: string[];
+  /** Parti beklemesi (sn) = (parti − 1) × C/T: bir parça partinin geri kalanını bekler */
+  batchWaitSec: number | null;
+  epei: EpeiResult;
+  isPacemaker: boolean;
 }
 
 export interface InventoryStep extends InventoryDays {
@@ -231,6 +316,18 @@ export interface FamilySummary {
   family: ProductFamily;
   taktSec: number | null;
   pitchSec: number | null;
+}
+
+export interface PacemakerInfo {
+  /** Seçili hız belirleyici (yoksa `null`) */
+  id: string | null;
+  title: string | null;
+  /** Hız belirleyicinin bu görünümdeki proses adımı (aile görünümünde o aileden geçmiyorsa `null`) */
+  step: ProcessStep | null;
+  /** Akış kuralına uymayanlar: hız belirleyiciden sonra itme stoğu / itme oku, takt üstü */
+  warnings: { id: string; text: string }[];
+  /** Seçilmediyse öneri: akış sırasında en sondaki proses */
+  suggestion: { id: string; title: string } | null;
 }
 
 export interface VsmSummary {
@@ -263,6 +360,11 @@ export interface VsmSummary {
   processingSec: Total;
   /** Stoklarda toplam bekleme (gün) */
   waitDays: Total;
+  /** Proseslerde toplam parti beklemesi (sn) */
+  batchWaitSec: Total;
+  /** Parti beklemesi lead time'a eklendi mi? */
+  leadTimeIncludesBatchWait: boolean;
+  pacemaker: PacemakerInfo;
   /** Üretim lead time (gün) */
   leadTimeDays: number | null;
   /** İşlem süresi lead time'a eklendi mi (net çalışma süresi biliniyorsa)? */
@@ -389,6 +491,9 @@ export function computeSummary(nodes: ShapeNode[], edges: FlowEdge[], map: VsmMa
         rawLoad: famLoad.rawLoad,
         load,
         familyIds: passingFamilies(vsm, map).map((x) => x.id),
+        batchWaitSec: batchWait(f.batchSize.value, cycleSec),
+        epei: epeiOf(vsm, map, netSec),
+        isPacemaker: map.pacemakerId === n.id,
       };
     })
     .sort(byX);
@@ -414,8 +519,12 @@ export function computeSummary(nodes: ShapeNode[], edges: FlowEdge[], map: VsmMa
 
   // İşlem süresi ancak günlük net çalışma süresi biliniyorsa güne çevrilip eklenebilir.
   const processingDays = usableDay && processingSec.value !== null ? processingSec.value / usableDay : null;
+  const batchWaitSec = sum(processes.map((p) => p.batchWaitSec));
+  // Parti beklemesi isteğe bağlıdır (klasik yöntemde lead time'a girmez).
+  const leadTimeIncludesBatchWait = map.includeBatchWait && usableDay !== null && batchWaitSec.value !== null;
+  const batchDays = leadTimeIncludesBatchWait ? (batchWaitSec.value as number) / (usableDay as number) : 0;
   const leadTimeDays =
-    waitDays.value === null && processingDays === null ? null : (waitDays.value ?? 0) + (processingDays ?? 0);
+    waitDays.value === null && processingDays === null ? null : (waitDays.value ?? 0) + (processingDays ?? 0) + batchDays;
   const leadTimeIncludesProcessing = usableDay !== null && processingSec.value !== null;
   const valueAddedRatio =
     usableDay && processingSec.value !== null && leadTimeDays !== null && leadTimeDays > 0
@@ -456,6 +565,8 @@ export function computeSummary(nodes: ShapeNode[], edges: FlowEdge[], map: VsmMa
     return { family: fam, taktSec: t, pitchSec: t !== null && pk ? t * pk : null };
   });
 
+  const pacemaker = pacemakerInfo(nodes, edges, map, processes, rank);
+
   return {
     takt,
     multiFamily: multi,
@@ -473,6 +584,9 @@ export function computeSummary(nodes: ShapeNode[], edges: FlowEdge[], map: VsmMa
     pitchReason,
     processingSec,
     waitDays,
+    batchWaitSec,
+    leadTimeIncludesBatchWait,
+    pacemaker,
     leadTimeDays,
     leadTimeIncludesProcessing,
     valueAddedRatio,
@@ -483,4 +597,61 @@ export function computeSummary(nodes: ShapeNode[], edges: FlowEdge[], map: VsmMa
     inventoriesMissingDemand: inventories.filter((i) => i.days === null).length,
     netTimeOverDay: daySec !== null && daySec > 24 * 3600,
   };
+}
+
+/** (parti − 1) × C/T; parti 1 ise 0, parti ya da C/T yoksa boş. */
+function batchWait(batch: number | null, cycleSec: number | null): number | null {
+  if (batch === null || cycleSec === null || batch < 1) return null;
+  return (batch - 1) * cycleSec;
+}
+
+/** Hız belirleyiciden sonra akışı bozan stok türleri (FIFO ve güvenlik stoğu akışı bozmaz). */
+const PUSH_STOCK_KINDS = new Set(['inventory', 'supermarket']);
+
+/**
+ * Hız belirleyici (pacemaker) kontrolleri. Klasik kural: hız belirleyiciden sonraki akış sürekli ya da FIFO
+ * olmalı; itme stoğu (üçgen), süpermarket ya da itme oku olmamalı. Son prosesten sonraki mamul stoğu sayılmaz.
+ */
+function pacemakerInfo(
+  nodes: ShapeNode[],
+  edges: FlowEdge[],
+  map: VsmMapData,
+  processes: ProcessStep[],
+  rank: Map<string, number>,
+): PacemakerInfo {
+  const allProcesses = nodes.filter((n) => n.type === 'process');
+  const pm = map.pacemakerId ? allProcesses.find((n) => n.id === map.pacemakerId) : undefined;
+  const r = (id: string) => rank.get(id) ?? 0;
+  if (!pm) {
+    const candidates = processes.length ? processes : [];
+    const last = candidates.reduce<ProcessStep | null>((a, b) => (!a || r(b.id) > r(a.id) ? b : a), null);
+    return { id: null, title: null, step: null, warnings: [], suggestion: last ? { id: last.id, title: last.title } : null };
+  }
+  const pmRank = r(pm.id);
+  const title = pm.data.title.trim() || 'Başlıksız';
+  const step = processes.find((p) => p.id === pm.id) ?? null;
+  const warnings: PacemakerInfo['warnings'] = [];
+  // Akıştaki son proses (VSM verisi olanlar; planlama gibi bilgi kutuları sayılmaz)
+  const lastProcessRank = Math.max(pmRank, ...processes.map((p) => r(p.id)));
+  for (const n of nodes) {
+    if (!PUSH_STOCK_KINDS.has(n.type ?? '')) continue;
+    const nr = r(n.id);
+    if (nr > pmRank && nr < lastProcessRank) {
+      warnings.push({
+        id: n.id,
+        text: `${n.data.title.trim() || 'Stok'}: hız belirleyiciden sonra ${n.type === 'supermarket' ? 'süpermarket' : 'itme stoğu'} var. Bundan sonrası FIFO ya da sürekli akış olmalı.`,
+      });
+    }
+  }
+  const byId = new Map(nodes.map((n) => [n.id, n]));
+  for (const e of edges) {
+    if (e.type !== 'material') continue;
+    const target = byId.get(e.target);
+    if (r(e.source) >= pmRank && target && r(e.target) <= lastProcessRank && target.type !== 'terminal') {
+      const from = byId.get(e.source)?.data.title.trim() || 'şekil';
+      warnings.push({ id: e.source, text: `${from} → ${target.data.title.trim() || 'şekil'}: hız belirleyiciden sonra itme oku var.` });
+    }
+  }
+  if (step?.overTakt) warnings.push({ id: pm.id, text: `${title} takt üstü: hız belirleyici müşteri taktını karşılamalı.` });
+  return { id: pm.id, title, step, warnings, suggestion: null };
 }

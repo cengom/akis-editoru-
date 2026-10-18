@@ -57,8 +57,8 @@ yalnızca biri olacak; uygulama bir VSM hesaplayıcısına dönüştürülmemeli
 - Bağlantılar `ConnectionMode.Loose` ile çalışır; her şeklin dört kenarında `top/right/bottom/left`
   kimlikli bağlantı noktası vardır. Kenar kimlikleri kayıtta saklanır.
 - Katman sırası: departman alanı (zIndex 0) < oklar (1) < diğer şekiller (2). Seçili ok öne çıkar.
-- JSON dosyası, yerel kayıt ve buluttaki `document_json` **aynı** formatı kullanır. Güncel sürüm 8;
-  sürüm 1–7 de okunur (kaldırılan alanlar yok sayılır, kullanıcıya `warnings` ile bildirilir).
+- JSON dosyası, yerel kayıt ve buluttaki `document_json` **aynı** formatı kullanır. Güncel sürüm 9;
+  sürüm 1–8 de okunur (kaldırılan alanlar yok sayılır, kullanıcıya `warnings` ile bildirilir).
 - Stok verisi `data.inventory`; stok tutan şekiller `STOCK_KINDS` (stok üçgeni, süpermarket, FIFO,
   güvenlik stoğu) ve hepsi zaman çizgisinde bekleme sayılır. Kaizen verisi `data.kaizen`.
 - Mevcut / gelecek durum: üst düzey alanlar her zaman **mevcut durumdur**; gelecek durum `futureState`.
@@ -73,6 +73,10 @@ yalnızca biri olacak; uygulama bir VSM hesaplayıcısına dönüştürülmemeli
   hesapla birebir aynı olmalı. Karma görünümde takt üstü = ham yük > 1. Görünüm değişikliği bulut
   "kaydedilmemiş" imzasına girmez (`contentSignature`). Tuvale durum `VsmCanvasContext.processStatus`,
   soluk şekiller `dimmed` ile gelir.
+- Parti beklemesi (`batchWaitSec` = (parti − 1) × C/T), EPEI (`epeiOf`) ve hız belirleyici kontrolleri
+  (`pacemakerInfo`) vsmCalc'tadır. Parti beklemesi yalnızca `vsmMap.includeBatchWait` açıkken lead time'a
+  girer; varsayılan klasik sonuç değişmemeli. EPEI'de kullanılabilir süre = net − plansız duruş (uptime
+  kullanılmaz, değişim kaybını içerebilir). Panel parçaları `src/components/MethodBoxes.tsx`.
 - Zaman çizgisi sırası akış oklarından gelir (`flowOrder`: bilgi okları hariç, geri dönüşler kırılır). Buluttan gelen belge de `parseDocument` ile doğrulanır.
 - İki kayıt modu: **yerel taslak** (`STORAGE_KEY`, otomatik) ve **bulut proje** (manuel "Kaydet").
   Bulut projesi açıkken yerel taslağa yazılmaz; kaydedilmemiş değişiklikler `CLOUD_BACKUP_KEY` yedeğine

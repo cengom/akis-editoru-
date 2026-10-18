@@ -405,6 +405,8 @@ function parseStateContent(
   });
 
   if (failed()) return null;
+  // Hız belirleyici artık olmayan ya da proses olmayan bir şekli gösteriyorsa seçim kaldırılır.
+  if (vsmMap.pacemakerId && !nodes.some((n) => n.id === vsmMap.pacemakerId && n.kind === 'process')) vsmMap.pacemakerId = null;
   return { viewport, vsmMap, nodes, edges };
 }
 

@@ -620,3 +620,24 @@ details.help { margin-bottom: 12px; }
 .crash-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
 .crash-warn { color: var(--danger); }
 .crash-card pre { white-space: pre-wrap; word-break: break-word; background: var(--bg); padding: 8px; border-radius: 6px; font-size: 12px; }
+
+/* Hız belirleyici, parti beklemesi, EPEI */
+.pacemaker-badge {
+  position: absolute;
+  top: -11px;
+  left: -6px;
+  background: #0f766e;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 999px;
+  white-space: nowrap;
+  pointer-events: none;
+}
+.pacemaker-toggle { margin: 4px 0 8px; padding: 6px 8px; border: 1px solid #99f6e4; background: #f0fdfa; border-radius: 6px; }
+.pacemaker-toggle .muted { margin: 2px 0 0; }
+.epei-box { margin: 8px 0; padding: 6px 8px; border: 1px solid var(--border); border-radius: 6px; }
+.epei-box h4 { margin: 0 0 4px; font-size: 13px; }
+.epei-box p { margin: 2px 0; }
+.tl-batch { font-size: 11px; }

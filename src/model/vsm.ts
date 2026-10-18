@@ -91,6 +91,16 @@ export const VSM_FIELDS: readonly VsmFieldSpec[] = [
     advanced: true,
     hint: 'Günde kaç kez setup yapılıyor (C/O ile çarpılır).',
   },
+  {
+    key: 'partTypes',
+    label: 'Ürün çeşidi sayısı',
+    short: 'Çeşit',
+    units: ['çeşit'],
+    defaultUnit: 'çeşit',
+    integer: true,
+    advanced: true,
+    hint: 'Bu proseste değişimle sırayla üretilen çeşit sayısı. EPEI hesabı için; boşsa geçen aile sayısı kullanılır.',
+  },
 ];
 
 /* ---------- Stok üçgeni ---------- */
@@ -208,6 +218,8 @@ export function emptyVsmMap(): VsmMapData {
     colorByTakt: false,
     families: [newFamily(0, DEFAULT_FAMILY_ID)],
     familyView: 'all',
+    pacemakerId: null,
+    includeBatchWait: false,
   };
 }
 
@@ -242,6 +254,8 @@ export function cloneVsmMap(map: VsmMapData): VsmMapData {
     colorByTakt: map.colorByTakt,
     families: map.families.map((f) => ({ ...f, demand: { ...f.demand }, packQuantity: { ...f.packQuantity } })),
     familyView: map.familyView,
+    pacemakerId: map.pacemakerId,
+    includeBatchWait: map.includeBatchWait,
   };
 }
 
@@ -427,6 +441,11 @@ export function parseVsmMap(raw: unknown, fail: Fail): VsmMapData | null {
   }
   if (typeof raw.showTimeline === 'boolean') result.showTimeline = raw.showTimeline;
   if (typeof raw.colorByTakt === 'boolean') result.colorByTakt = raw.colorByTakt;
+  // Sürüm 9 öncesinde yoktur: hız belirleyici seçilmemiş, parti beklemesi lead time'a eklenmez.
+  if (typeof raw.includeBatchWait === 'boolean') result.includeBatchWait = raw.includeBatchWait;
+  if (typeof raw.pacemakerId === 'string' && raw.pacemakerId.length > 0 && raw.pacemakerId.length <= 100) {
+    result.pacemakerId = raw.pacemakerId;
+  }
   const fields = parseQuantityFields(raw.fields, VSM_MAP_FIELDS, 'VSM genel verileri', fail);
   if (!fields) return null;
   result.fields = fields;

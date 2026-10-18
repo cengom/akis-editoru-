@@ -75,6 +75,11 @@ export function Timeline({ summary, onSelectNode, onClose }: Props) {
                 {steps.map((s) => (
                   <td key={s.id} className={s.kind === 'process' ? 'tl-on' : 'tl-off'}>
                     {s.kind === 'process' && (s.cycleSec === null ? '—' : formatDuration(s.cycleSec))}
+                    {s.kind === 'process' && summary.leadTimeIncludesBatchWait && !!s.batchWaitSec && (
+                      <div className="tl-batch calc-value" title="Parti beklemesi = (parti − 1) × C/T">
+                        + parti {formatDuration(s.batchWaitSec)}
+                      </div>
+                    )}
                   </td>
                 ))}
                 <td className="tl-total">
@@ -82,6 +87,11 @@ export function Timeline({ summary, onSelectNode, onClose }: Props) {
                   <span className="calc-value" data-testid="cizgi-islem">
                     {summary.processingSec.value === null ? '—' : formatDuration(summary.processingSec.value)}
                   </span>
+                  {summary.leadTimeIncludesBatchWait && (
+                    <>
+                      {' · '}Parti = <span className="calc-value">{formatDuration(summary.batchWaitSec.value!)}</span>
+                    </>
+                  )}
                 </td>
               </tr>
               <tr className="tl-lead">

@@ -8,6 +8,7 @@ import { MapPanel } from './MapPanel';
 import { stockDemand } from '../model/families';
 import { OeeBreakdown } from './OeeBreakdown';
 import { QuantityTable } from './QuantityFields';
+import { BatchWaitNote, EpeiBox, PacemakerToggle } from './MethodBoxes';
 
 interface Props {
   nodes: ShapeNode[];
@@ -67,6 +68,7 @@ export function PropertiesPanel(props: Props) {
           vsmMap={props.vsmMap}
           processLoad={props.summary.processes.find((p) => p.id === selectedNodes[0].id)?.load ?? null}
           onUpdate={props.onUpdateNode}
+          onUpdateMap={props.onUpdateMap}
         />
       )}
       {total === 1 && selectedEdges[0] && (
@@ -118,6 +120,7 @@ function NodeEditor({
   vsmMap,
   processLoad,
   onUpdate,
+  onUpdateMap,
 }: {
   node: ShapeNode;
   taktSec: number | null;
@@ -125,6 +128,7 @@ function NodeEditor({
   vsmMap: VsmMapData;
   processLoad: number | null;
   onUpdate: Props['onUpdateNode'];
+  onUpdateMap: Props['onUpdateMap'];
 }) {
   const kind = node.type as ShapeKind;
   const isPreset = COLOR_PRESETS.includes(node.data.color);
@@ -193,6 +197,7 @@ function NodeEditor({
           onChange={(inventory) => onUpdate(node.id, { inventory })}
         />
       )}
+      {kind === 'process' && <PacemakerToggle nodeId={node.id} vsmMap={vsmMap} onUpdateMap={onUpdateMap} />}
       {kind === 'process' && (
         <VsmEditor
           key={node.id}
@@ -200,7 +205,7 @@ function NodeEditor({
           taktSec={taktSec}
           netSec={netSec}
           load={processLoad}
-          families={vsmMap.families}
+          vsmMap={vsmMap}
           onChange={(vsm) => onUpdate(node.id, { vsm })}
         />
       )}
@@ -397,16 +402,17 @@ function VsmEditor({
   taktSec,
   netSec,
   load,
-  families,
+  vsmMap,
   onChange,
 }: {
   vsm: VsmData;
   taktSec: number | null;
   netSec: number | null;
   load: number | null;
-  families: ProductFamily[];
+  vsmMap: VsmMapData;
   onChange: (vsm: VsmData) => void;
 }) {
+  const families = vsmMap.families;
   const basic = VSM_FIELDS.filter((f) => !f.advanced);
   const advanced = VSM_FIELDS.filter((f) => f.advanced);
   const advancedFilled = advanced.some((f) => vsm.fields[f.key].value !== null);
@@ -460,6 +466,8 @@ function VsmEditor({
         <summary>Gelişmiş alanlar</summary>
         <QuantityTable specs={advanced} values={vsm.fields} onChange={setField} idPrefix="vsm" />
       </details>
+      <BatchWaitNote vsm={vsm} vsmMap={vsmMap} />
+      <EpeiBox vsm={vsm} vsmMap={vsmMap} netSec={netSec} />
       <label>
         VSM notu
         <textarea

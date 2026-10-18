@@ -15,8 +15,8 @@ import type { Edge, Node } from '@xyflow/react';
  *    proseste geçen aileler ve aile başına C/T, stokta aile.
  * Eski sürüm dosyaları hâlâ açılır; eksik alanlar boş kabul edilir, kaldırılan alanlar yok sayılır.
  */
-export const SCHEMA_VERSION = 8 as const;
-export const SUPPORTED_SCHEMA_VERSIONS = [1, 2, 3, 4, 5, 6, 7, 8] as const;
+export const SCHEMA_VERSION = 9 as const;
+export const SUPPORTED_SCHEMA_VERSIONS = [1, 2, 3, 4, 5, 6, 7, 8, 9] as const;
 
 /** Dosyanın bu uygulamaya ait olduğunu gösteren işaret. */
 export const APP_ID = 'akis-editoru' as const;
@@ -80,6 +80,7 @@ export const VSM_FIELD_KEYS = [
   'idealCycleTime',
   'unplannedDowntime',
   'changeoversPerDay',
+  'partTypes',
 ] as const;
 
 /** Sürüm 4'te kaldırılan proses alanları (eski dosyalarda bulunabilir; okunmaz). */
@@ -105,6 +106,7 @@ export const VSM_UNITS = [
   'kez/hafta',
   'kez/ay',
   'hafta',
+  'çeşit',
 ] as const;
 export type VsmUnit = (typeof VSM_UNITS)[number];
 
@@ -184,6 +186,10 @@ export interface VsmMapData {
   families: ProductFamily[];
   /** Hesapların ve grafiklerin gösterdiği aile (yalnızca görünüm) */
   familyView: FamilyView;
+  /** Hız belirleyici (pacemaker) prosesin kimliği; seçilmediyse `null` */
+  pacemakerId: string | null;
+  /** Parti beklemesi ((parti − 1) × C/T) lead time'a eklensin mi? Klasik yöntemde eklenmez. */
+  includeBatchWait: boolean;
 }
 
 /** Bir şeklin taşıdığı, düzenlenebilir veri. */

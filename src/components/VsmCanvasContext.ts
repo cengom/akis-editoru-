@@ -26,6 +26,8 @@ export interface VsmCanvasInfo {
   dimmed: string[];
   /** Ürün aileleri (birden çoksa veri kutusunda renk etiketleri gösterilir) */
   families: ProductFamily[];
+  /** Hız belirleyici prosesin kimliği */
+  pacemakerId: string | null;
   /** Stok için günlük talep (stok bir aileye bağlıysa o aile) */
   stockDemandOf: (inv: InventoryData) => VsmQuantity;
 }
@@ -38,5 +40,6 @@ export const VsmCanvasContext = createContext<VsmCanvasInfo>({
   processStatus: {},
   dimmed: [],
   families: [],
+  pacemakerId: null,
   stockDemandOf: () => ({ value: null, unit: 'adet/gün' }),
 });
