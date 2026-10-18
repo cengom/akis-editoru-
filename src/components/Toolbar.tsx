@@ -1,7 +1,7 @@
 import type { ChangeEvent } from 'react';
 import { useRef } from 'react';
 import type { CloudSession } from '../cloud/useCloudSession';
-import type { MapState } from '../model/types';
+import type { FamilyView, MapState, ProductFamily } from '../model/types';
 
 /** Yerel taslağın tarayıcıya otomatik kaydı */
 export type SaveState = { kind: 'saved'; at: Date } | { kind: 'pending' } | { kind: 'error' };
@@ -45,6 +45,10 @@ interface Props {
   hasFuture: boolean;
   onSwitchState: (target: MapState) => void;
   onRemoveFuture: () => void;
+  // Ürün ailesi görünümü
+  families: ProductFamily[];
+  familyView: FamilyView;
+  onFamilyView: (view: FamilyView) => void;
   // Kayıt modu ve bulut
   mode: ModeInfo;
   session: CloudSession;
@@ -222,6 +226,27 @@ export function Toolbar(props: Props) {
             </button>
           )}
         </div>
+        {props.families.length > 1 && (
+          <div className="toolbar-group">
+            <label className="group-label" htmlFor="aile-secici">
+              Aile
+            </label>
+            <select
+              id="aile-secici"
+              className="family-select"
+              value={props.familyView}
+              onChange={(e) => props.onFamilyView(e.target.value)}
+              data-testid="aile-secici"
+            >
+              <option value="all">Tüm aileler (karma)</option>
+              {props.families.map((f) => (
+                <option key={f.id} value={f.id}>
+                  {f.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
         <div className="toolbar-group">
           <span className="group-label">Düzen</span>
           <button type="button" onClick={props.onUndo} disabled={!props.canUndo} title="Son değişikliği geri al (⌘/Ctrl+Z)" aria-label="Geri al" className="undo-btn" data-testid="geri-al">

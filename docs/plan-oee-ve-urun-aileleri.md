@@ -1,6 +1,6 @@
 # Plan: OEE bileşenleri ve birden fazla ürün ailesi
 
-Durum: tasarım onaylandı (18.10.2026). **1. bölüm (OEE) uygulandı** (kayıt formatı sürüm 7).
+Durum: tasarım onaylandı (18.10.2026). **1. bölüm (OEE) uygulandı** (kayıt formatı sürüm 7). **2. bölüm (ürün aileleri) uygulandı** (kayıt formatı sürüm 8).
 2. bölüm (ürün aileleri) henüz uygulanmadı; kayıt formatı sürüm 8 olacak.
 Kararlar: OEE'de **karma giriş**; ürün aileleri için **tek harita, karma model (B)**.
 

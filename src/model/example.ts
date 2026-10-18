@@ -80,11 +80,10 @@ function edge(
 /** Örnek hat verileri: 460 dk/gün ÷ 460 adet/gün = 60 sn takt. */
 function exampleMap(): VsmMapData {
   const map = emptyVsmMap();
-  map.fields.customerDemand = { value: 460, unit: 'adet/gün' };
+  map.families = [{ ...map.families[0], name: 'Standart ürün', demand: { value: 460, unit: 'adet/gün' }, packQuantity: { value: 20, unit: 'adet' } }];
   map.fields.netWorkingTime = { value: 460, unit: 'dk/gün' };
   map.fields.shifts = { value: 1, unit: 'vardiya' };
   map.fields.shipmentFrequency = { value: 1, unit: 'kez/gün' };
-  map.fields.packQuantity = { value: 20, unit: 'adet' };
   map.showTimeline = true;
   return map;
 }
@@ -225,7 +224,7 @@ function exampleFuture(current: StateContent): StateContent {
     ...sm.data,
     title: 'Süpermarket',
     color: '#ffffff',
-    inventory: { stock: { value: 60, unit: 'adet' }, replenishTime: { value: 0.5, unit: 'gün' }, safetyRate: { value: 10, unit: '%' } },
+    inventory: { stock: { value: 60, unit: 'adet' }, replenishTime: { value: 0.5, unit: 'gün' }, safetyRate: { value: 10, unit: '%' }, familyId: null },
   };
   const fifo = byId('stok-montaj');
   Object.assign(fifo, { kind: 'fifo', width: 54, height: 30 });

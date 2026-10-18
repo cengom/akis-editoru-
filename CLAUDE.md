@@ -54,8 +54,8 @@ yalnızca biri olacak; uygulama bir VSM hesaplayıcısına dönüştürülmemeli
 - Bağlantılar `ConnectionMode.Loose` ile çalışır; her şeklin dört kenarında `top/right/bottom/left`
   kimlikli bağlantı noktası vardır. Kenar kimlikleri kayıtta saklanır.
 - Katman sırası: departman alanı (zIndex 0) < oklar (1) < diğer şekiller (2). Seçili ok öne çıkar.
-- JSON dosyası, yerel kayıt ve buluttaki `document_json` **aynı** formatı kullanır. Güncel sürüm 7;
-  sürüm 1–6 da okunur (kaldırılan alanlar yok sayılır, kullanıcıya `warnings` ile bildirilir).
+- JSON dosyası, yerel kayıt ve buluttaki `document_json` **aynı** formatı kullanır. Güncel sürüm 8;
+  sürüm 1–7 de okunur (kaldırılan alanlar yok sayılır, kullanıcıya `warnings` ile bildirilir).
 - Stok verisi `data.inventory`; stok tutan şekiller `STOCK_KINDS` (stok üçgeni, süpermarket, FIFO,
   güvenlik stoğu) ve hepsi zaman çizgisinde bekleme sayılır. Kaizen verisi `data.kaizen`.
 - Mevcut / gelecek durum: üst düzey alanlar her zaman **mevcut durumdur**; gelecek durum `futureState`.
@@ -64,6 +64,12 @@ yalnızca biri olacak; uygulama bir VSM hesaplayıcısına dönüştürülmemeli
 - OEE: `oeeOf(vsm, netSec)` (vsmCalc). Kullanılabilirlik = elle uptime, yoksa duruş ve değişimlerden;
   etkin C/T de aynı kullanılabilirliği kullanır (`effectiveCycleSeconds(vsm, netSec)`). Net süre harita
   verisinden gelir ve tuvale `VsmCanvasContext.netSec` ile iletilir.
+- Ürün aileleri (sürüm 8): `vsmMap.families` (talep ve paket adedi burada; harita alanında değil) ve
+  `vsmMap.familyView` ('all' | aile kimliği). Yardımcılar `src/model/families.ts` (`viewFamily`,
+  `viewDemand`, `passes`, `familyCycle`, `stockDemand`, `stockInView`). Tek ailede sonuçlar eski
+  hesapla birebir aynı olmalı. Karma görünümde takt üstü = ham yük > 1. Görünüm değişikliği bulut
+  "kaydedilmemiş" imzasına girmez (`contentSignature`). Tuvale durum `VsmCanvasContext.processStatus`,
+  soluk şekiller `dimmed` ile gelir.
 - Zaman çizgisi sırası akış oklarından gelir (`flowOrder`: bilgi okları hariç, geri dönüşler kırılır). Buluttan gelen belge de `parseDocument` ile doğrulanır.
 - İki kayıt modu: **yerel taslak** (`STORAGE_KEY`, otomatik) ve **bulut proje** (manuel "Kaydet").
   Bulut projesi açıkken yerel taslağa yazılmaz; kaydedilmemiş değişiklikler `CLOUD_BACKUP_KEY` yedeğine

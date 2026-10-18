@@ -54,6 +54,7 @@ import {
 } from './model/types';
 import { computeSummary } from './model/vsmCalc';
 import { toSeconds } from './model/vsm';
+import { isMultiFamily, passes, stockDemand, stockInView, viewDemand, viewFamily } from './model/families';
 import { edgeTypes } from './edges/FlowEdgeView';
 import { isTyping, useHistory } from './editor/useHistory';
 import { useClipboard } from './editor/useClipboard';
@@ -161,14 +162,47 @@ function Editor() {
       : { current: otherSummary, future: summary }
     : null;
   const taktSec = summary.takt.seconds;
-  const demand = vsmMap.fields.customerDemand;
-  // Sürükleme sırasında değişmez; şekiller gereksiz yere yeniden çizilmez.
+  const demand = useMemo(() => viewDemand(vsmMap), [vsmMap]);
   const colorByTakt = vsmMap.colorByTakt;
   const netSec = toSeconds(vsmMap.fields.netWorkingTime);
-  const canvasInfo = useMemo<VsmCanvasInfo>(
-    () => ({ taktSec, demand, colorByTakt, netSec }),
-    [taktSec, demand, colorByTakt, netSec],
+  // Durumlar metne çevrilerek karşılaştırılır: sürükleme sırasında değişmezler, şekiller gereksiz yere yeniden çizilmez.
+  const statusKey = JSON.stringify(
+    summary.processes.map((p) => [
+      p.id,
+      p.overTakt,
+      p.overTaktEffective,
+      summary.mixed ? p.load : p.effectiveCycleSec !== null && taktSec ? p.effectiveCycleSec / taktSec : null,
+    ]),
   );
+  const view = viewFamily(vsmMap);
+  const dimmedKey = JSON.stringify(
+    view && isMultiFamily(vsmMap)
+      ? nodes
+          .filter(
+            (n) =>
+              (n.type === 'process' && n.data.vsm && !passes(n.data.vsm, vsmMap, view.id)) ||
+              (n.data.inventory && !stockInView(n.data.inventory, vsmMap)),
+          )
+          .map((n) => n.id)
+      : [],
+  );
+  const families = vsmMap.families;
+  const canvasInfo = useMemo<VsmCanvasInfo>(() => {
+    const processStatus: VsmCanvasInfo['processStatus'] = {};
+    for (const [id, over, eff, ratio] of JSON.parse(statusKey) as [string, boolean, boolean, number | null][]) {
+      processStatus[id] = { overTakt: over, overEffective: eff, ratio };
+    }
+    return {
+      taktSec,
+      demand,
+      colorByTakt,
+      netSec,
+      processStatus,
+      dimmed: JSON.parse(dimmedKey) as string[],
+      families,
+      stockDemandOf: (inv) => stockDemand(inv, { ...vsmMap, families }),
+    };
+  }, [taktSec, demand, colorByTakt, netSec, statusKey, dimmedKey, families]);
 
   /* ---------- Başka sekmede yapılan değişiklik uyarısı ---------- */
   useEffect(() => {
@@ -641,6 +675,9 @@ function Editor() {
         hasFuture={activeState === 'future' || otherState !== null}
         onSwitchState={askSwitchState}
         onRemoveFuture={askRemoveFuture}
+        families={vsmMap.families}
+        familyView={vsmMap.familyView}
+        onFamilyView={(v) => setVsmMap((m) => ({ ...m, familyView: v }))}
         mode={
           cp.project
             ? { kind: 'cloud', dirty: cp.project.dirty, status: cp.status }

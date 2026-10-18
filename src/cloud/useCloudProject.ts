@@ -54,7 +54,9 @@ const ORPHAN_KEY = 'akis-editoru.bulut-yedek.sahipsiz';
 function contentSignature(doc: DiagramDocument): string {
   // Üst düzey alanlar her zaman mevcut durumdur; hangi sekmenin açık olduğu değişiklik sayılmaz.
   const f = doc.futureState;
-  return JSON.stringify({ n: doc.nodes, e: doc.edges, m: doc.vsmMap, f: f && { n: f.nodes, e: f.edges, m: f.vsmMap } });
+  // Yalnızca görünüm tercihleri (aile görünümü, renklendirme) değişiklik sayılmaz.
+  const m = (v: DiagramDocument['vsmMap']) => ({ ...v, familyView: undefined, colorByTakt: undefined });
+  return JSON.stringify({ n: doc.nodes, e: doc.edges, m: m(doc.vsmMap), f: f && { n: f.nodes, e: f.edges, m: m(f.vsmMap) } });
 }
 
 interface Baseline {

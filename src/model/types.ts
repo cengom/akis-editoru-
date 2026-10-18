@@ -11,10 +11,12 @@ import type { Edge, Node } from '@xyflow/react';
  * 6: gelecek durum haritası (`futureState`) ve açık olan harita (`activeState`); çekme/planlama sembolleri,
  *    süpermarket boyutu ve kaizen verisi.
  * 7: OEE için proses alanları (ideal C/T, plansız duruş, günlük değişim sayısı).
+ * 8: birden fazla ürün ailesi (karma model): haritada aile listesi (talep ve paket adedi aileye taşındı),
+ *    proseste geçen aileler ve aile başına C/T, stokta aile.
  * Eski sürüm dosyaları hâlâ açılır; eksik alanlar boş kabul edilir, kaldırılan alanlar yok sayılır.
  */
-export const SCHEMA_VERSION = 7 as const;
-export const SUPPORTED_SCHEMA_VERSIONS = [1, 2, 3, 4, 5, 6, 7] as const;
+export const SCHEMA_VERSION = 8 as const;
+export const SUPPORTED_SCHEMA_VERSIONS = [1, 2, 3, 4, 5, 6, 7, 8] as const;
 
 /** Dosyanın bu uygulamaya ait olduğunu gösteren işaret. */
 export const APP_ID = 'akis-editoru' as const;
@@ -121,6 +123,10 @@ export interface VsmData {
   showDataBox: boolean;
   fields: Record<VsmFieldKey, VsmQuantity>;
   note: string;
+  /** Bu prosesten geçen aileler; boş liste = tüm aileler */
+  familyIds: string[];
+  /** Aile başına çevrim süresi; olmayan aile için ortak `cycleTime` kullanılır */
+  cycleByFamily: Record<string, VsmQuantity>;
 }
 
 /** Stok üçgeninin verisi. Miktar adet ya da doğrudan gün olarak girilir. */
@@ -130,6 +136,8 @@ export interface InventoryData {
   replenishTime: VsmQuantity;
   /** Yalnızca süpermarket boyut hesabı için: güvenlik payı (%) */
   safetyRate: VsmQuantity;
+  /** Stok tek bir aileye aitse o ailenin kimliği; `null` = tüm aileler */
+  familyId: string | null;
 }
 
 export const KAIZEN_STATUSES = ['open', 'doing', 'done'] as const;
@@ -144,7 +152,22 @@ export interface KaizenData {
 }
 
 /** Harita (hat) düzeyindeki VSM alanları. */
-export const VSM_MAP_FIELD_KEYS = ['customerDemand', 'netWorkingTime', 'shifts', 'shipmentFrequency', 'packQuantity'] as const;
+export const VSM_MAP_FIELD_KEYS = ['netWorkingTime', 'shifts', 'shipmentFrequency'] as const;
+
+/** Ürün ailesi: kendi talebi ve paket adedi olan, aynı proseslerden geçen ürün grubu. */
+export interface ProductFamily {
+  id: string;
+  name: string;
+  /** #rrggbb */
+  color: string;
+  /** adet/gün */
+  demand: VsmQuantity;
+  /** adet */
+  packQuantity: VsmQuantity;
+}
+
+/** Hesapların görünümü: tek bir aile ya da tüm aileler birlikte */
+export type FamilyView = 'all' | string;
 
 /** Sürüm 5'te kaldırılan harita alanları (pitch artık hesaplanıyor). */
 export const REMOVED_VSM_MAP_FIELD_KEYS = ['pitch'] as const;
@@ -157,6 +180,10 @@ export interface VsmMapData {
   showTimeline: boolean;
   /** Prosesler C/T ÷ takt oranına göre renklendirilsin mi? (yalnızca görünüm) */
   colorByTakt: boolean;
+  /** Ürün aileleri (en az bir aile vardır) */
+  families: ProductFamily[];
+  /** Hesapların ve grafiklerin gösterdiği aile (yalnızca görünüm) */
+  familyView: FamilyView;
 }
 
 /** Bir şeklin taşıdığı, düzenlenebilir veri. */

@@ -101,7 +101,7 @@
 
 - [x] OEE bileşenleri (A × P × Q, ideal C/T, duruşlardan kullanılabilirlik, kapasite ve talep yükü) — sürüm 7
 - [x] Geri al / İleri al düğmeleri yazılı ve belirgin
-- [ ] Birden fazla ürün ailesi, karma model (aile talebi/takt, ürün–proses matrisi, proses yükü) — aynı plan belgesi
+- [x] Birden fazla ürün ailesi, karma model (aile talebi/takt, ürün–proses matrisi, proses yükü, aile görünümü) — sürüm 8
 - [ ] Zaman çizgisini tuval koordinatlarında (çizimle birlikte yakınlaşan) seçenek olarak sunmak
 - [ ] Vardiya başına net süre girişi (günlük toplamı otomatik hesaplama)
 - [ ] Veri kutusunu düğüm boyutuna dahil etme ya da alt bağlantı noktasını kutunun altına taşıma seçeneği

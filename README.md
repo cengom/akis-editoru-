@@ -113,13 +113,24 @@ Uygulama tek sayfalık statik bir sitedir; sunucu kodu yoktur.
   girilen uptime'dır; uptime boşsa **plansız duruş** (dk/gün) ve **değişim sayısı** (× C/O) ile net
   çalışma süresinden hesaplanır. Panelde dört çubuk, %85 hedefi, eksik bileşen notu ve günlük kapasite
   ile talep yükü görünür; veri kutusunda OEE satırı, özette proses bazında OEE tablosu vardır.
+- **Birden fazla ürün ailesi (karma model):** "VSM verileri / özet" panelinde "+ Ürün ailesi ekle" ile
+  en fazla 8 aile tanımlanır (ad, talep, paket adedi; renk otomatik). Proses seçilince "Ürün aileleri"
+  bölümünde o prosesten geçen aileler işaretlenir (en az biri) ve gerekirse aileye özel C/T girilir; boş
+  bırakılırsa ortak C/T kullanılır. Stoklar bir aileye bağlanabilir ya da "Tüm aileler (ortak stok)"
+  kalır. Üstteki **Aile** seçicisi iki görünüm sunar:
+  - **Tüm aileler (karma):** karma takt = net süre ÷ toplam talep; proses C/T'si talebe göre ağırlıklı
+    ortalamadır; **proses yükü** = Σ(aile talebi × aile C/T) ÷ net süre (duruş/hurda payı ayrı gösterilir).
+    %100'ü aşan proses kapasite yetmiyor uyarısı alır. Pitch bu görünümde aile başına tabloda gösterilir.
+  - **Tek aile:** o ailenin talebi, taktı ve C/T'leriyle klasik özet; o aileden geçmeyen prosesler ve başka
+    aileye ait stoklar tuvalde soluk görünür. Ortak stoklar beklemeyi toplam talebe göre hesaplar.
   Ondalık için virgül ya da nokta yazabilirsiniz. Boş bırakılan alan "veri yok" demektir; 0 ise gerçek
   bir değerdir. Girilen değerler prosesin altındaki veri kutusunda görünür; kutu prosesle birlikte
   taşınır ve "Veri kutusunu tuvalde göster" ile gizlenebilir.
   Bir oka tıklayıp etiket yazın (ör. "Evet", "Hayır").
 - **VSM genel verileri ve özet:** Boş bir yere tıklayın (ya da üstteki "VSM verileri / özet" düğmesine
-  basın). Sağ panelde müşteri talebi (adet/gün), net çalışma süresi (dk/gün veya sn/gün; günlük toplam),
-  vardiya sayısı, sevkiyat sıklığı ve isteğe bağlı paket adedi girilir (pitch = takt × paket adedi). Altındaki **VSM özeti** otomatik
+  basın). Sağ panelde net çalışma süresi (dk/gün veya sn/gün; günlük toplam), vardiya sayısı ve sevkiyat
+  sıklığı; **Ürün aileleri** bölümünde her ailenin müşteri talebi (adet/gün) ve isteğe bağlı paket adedi
+  girilir (pitch = takt × paket adedi). Tek aile varsa harita eskisi gibi tek ürünlüdür. Altındaki **VSM özeti** otomatik
   hesaplanır (klasik VSM yöntemi): takt süresi (net süre ÷ talep), toplam işlem süresi (proseslerin
   çevrim sürelerinin toplamı), stokta bekleme (stok üçgenlerinin gün toplamı), üretim lead time
   (bekleme + işlem süresi), değer katma oranı (işlem süresi ÷ lead time), toplam mesafe, darboğaz
@@ -185,19 +196,23 @@ JSON dosyası ve tarayıcı kaydı aynı biçimdedir (`src/model/types.ts`):
 ```json
 {
   "app": "akis-editoru",
-  "schemaVersion": 7,
+  "schemaVersion": 8,
   "name": "Diyagram adı",
   "savedAt": "2026-10-15T20:00:00.000Z",
   "viewport": { "x": 0, "y": 0, "zoom": 1 },
   "vsmMap": {
     "fields": {
-      "customerDemand": { "value": 460, "unit": "adet/gün" },
       "netWorkingTime": { "value": 460, "unit": "dk/gün" },
       "shifts": { "value": 1, "unit": "vardiya" },
-      "shipmentFrequency": { "value": 1, "unit": "kez/gün" },
-      "pitch": { "value": null, "unit": "dk" }
+      "shipmentFrequency": { "value": 1, "unit": "kez/gün" }
     },
-    "showTimeline": true
+    "families": [
+      { "id": "aile-1", "name": "Standart ürün", "color": "#2a78d6",
+        "demand": { "value": 460, "unit": "adet/gün" }, "packQuantity": { "value": 20, "unit": "adet" } }
+    ],
+    "familyView": "all",
+    "showTimeline": true,
+    "colorByTakt": false
   },
   "nodes": [
     { "id": "n-1", "kind": "process", "x": 100, "y": 50, "width": 180, "height": 80,
@@ -225,6 +240,11 @@ JSON dosyası ve tarayıcı kaydı aynı biçimdedir (`src/model/types.ts`):
 (`inventory`) `"inventory": { "stock": { "value": 120, "unit": "adet" } }` taşır (birim `adet` ya da `gün`).
 Şekil türleri (`kind`): `terminal`, `process`, `decision`, `department`, `note`, `customer`, `supplier`,
 `inventory`, `kaizen`. Bağlantı türleri (`kind`): `flow`, `info`, `material`, `shipment`.
+
+**Sürüm 8 değişikliği:** Ürün aileleri. Müşteri talebi ve paket adedi harita alanlarından
+`vsmMap.families` listesine taşındı; `vsmMap.familyView` seçili görünümü tutar. Proses VSM verisinde
+`familyIds` (boş = tüm aileler) ve `cycleByFamily` (aileye özel C/T), stokta `familyId` (boş = ortak) var.
+Eski dosyalardaki `customerDemand` / `packQuantity` otomatik olarak tek aileye taşınır.
 
 **Sürüm 7 değişikliği:** Proseste OEE alanları (`idealCycleTime`, `unplannedDowntime`,
 `changeoversPerDay`). Eski dosyalarda boş gelir.
@@ -261,7 +281,8 @@ var olan şekillere gitmesi, boyut sınırları). Hatalı dosya yüklenirse hata
 - Departman şekli yalnızca görsel bir alandır; içindeki kutular onunla birlikte taşınmaz (gruplama yok).
 - PNG çıktısı tüm çizimi kapsar; zaman çizgisi şeridi görsele girmez (yazdırma sayfasında tablo olarak
   yer alır). Yazdırma penceresi tarayıcının kendi penceresidir.
-- Birden fazla ürün ailesi (ayrı talep/takt) henüz desteklenmiyor; harita tek ürün ailesi içindir.
+- Ürün aileleri her haritada (mevcut / gelecek) ayrı tutulur; karşılaştırma tablosu iki haritayı kendi
+  seçili görünümleriyle karşılaştırır. Zaman çizgisi tek akış sırası kullanır; aileye özel güzergâh yoktur.
 - Lead time'a işlem süresinin eklenmesi için net çalışma süresi gerekir (saniyeleri güne çevirmek için).
   Stok günü adetten hesaplanacaksa müşteri talebi gerekir.
 - Net çalışma süresi günlük toplam olarak girilir; vardiya sayısı yalnızca bilgi amaçlıdır, hesaba girmez.

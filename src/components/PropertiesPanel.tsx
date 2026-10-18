@@ -1,10 +1,11 @@
 import { COLOR_PRESETS, SHAPES } from '../model/shapes';
 import { LIMITS } from '../model/document';
 import { EDGE_KIND_SPECS } from '../model/edges';
-import { EDGE_KINDS, KAIZEN_STATUSES, isStockKind, type KaizenData, type KaizenStatus, type EdgeKind, type FlowEdge, type ShapeData, type ShapeKind, type InventoryData, type ShapeNode, type VsmData, type VsmMapData, type VsmQuantity } from '../model/types';
-import { INVENTORY_FIELDS, VSM_FIELDS, VSM_LIMITS, KAIZEN_STATUS_LABELS, emptyInventory, emptyKaizen, emptyVsm, formatDays, formatDuration, formatNumber, toSeconds } from '../model/vsm';
+import { EDGE_KINDS, KAIZEN_STATUSES, isStockKind, type KaizenData, type KaizenStatus, type ProductFamily, type EdgeKind, type FlowEdge, type ShapeData, type ShapeKind, type InventoryData, type ShapeNode, type VsmData, type VsmMapData, type VsmQuantity } from '../model/types';
+import { INVENTORY_FIELDS, VSM_FIELDS, VSM_LIMITS, KAIZEN_STATUS_LABELS, emptyInventory, emptyKaizen, emptyVsm, formatDays, formatDuration, formatNumber, toSeconds , VSM_FIELD_SPECS, type QuantitySpec} from '../model/vsm';
 import { effectiveCycleSeconds, inventoryDays, isOverTakt, supermarketSizing, type VsmSummary } from '../model/vsmCalc';
 import { MapPanel } from './MapPanel';
+import { stockDemand } from '../model/families';
 import { OeeBreakdown } from './OeeBreakdown';
 import { QuantityTable } from './QuantityFields';
 
@@ -63,8 +64,8 @@ export function PropertiesPanel(props: Props) {
           node={selectedNodes[0]}
           taktSec={props.summary.takt.seconds}
           netSec={toSeconds(props.vsmMap.fields.netWorkingTime)}
-          demand={props.vsmMap.fields.customerDemand}
-          packQuantity={props.vsmMap.fields.packQuantity}
+          vsmMap={props.vsmMap}
+          processLoad={props.summary.processes.find((p) => p.id === selectedNodes[0].id)?.load ?? null}
           onUpdate={props.onUpdateNode}
         />
       )}
@@ -114,15 +115,15 @@ function NodeEditor({
   node,
   taktSec,
   netSec,
-  demand,
-  packQuantity,
+  vsmMap,
+  processLoad,
   onUpdate,
 }: {
   node: ShapeNode;
   taktSec: number | null;
   netSec: number | null;
-  demand: VsmQuantity;
-  packQuantity: VsmQuantity;
+  vsmMap: VsmMapData;
+  processLoad: number | null;
   onUpdate: Props['onUpdateNode'];
 }) {
   const kind = node.type as ShapeKind;
@@ -187,8 +188,7 @@ function NodeEditor({
         <InventoryEditor
           key={node.id}
           inventory={node.data.inventory ?? emptyInventory()}
-          demand={demand}
-          packQuantity={packQuantity}
+          vsmMap={vsmMap}
           isSupermarket={kind === 'supermarket'}
           onChange={(inventory) => onUpdate(node.id, { inventory })}
         />
@@ -199,10 +199,56 @@ function NodeEditor({
           vsm={node.data.vsm ?? emptyVsm()}
           taktSec={taktSec}
           netSec={netSec}
-          demand={demand}
+          load={processLoad}
+          families={vsmMap.families}
           onChange={(vsm) => onUpdate(node.id, { vsm })}
         />
       )}
+    </div>
+  );
+}
+
+/* ---------- Ürün–proses matrisi ---------- */
+
+function FamilyMatrix({ vsm, families, onChange }: { vsm: VsmData; families: ProductFamily[]; onChange: (v: VsmData) => void }) {
+  const all = vsm.familyIds.length === 0;
+  const passes = (id: string) => all || vsm.familyIds.includes(id);
+  const toggle = (id: string, on: boolean) => {
+    const current = all ? families.map((f) => f.id) : vsm.familyIds;
+    const next = on ? [...new Set([...current, id])] : current.filter((x) => x !== id);
+    if (next.length === 0) return; // en az bir aile geçmeli
+    onChange({ ...vsm, familyIds: next.length === families.length ? [] : next });
+  };
+  const specs: QuantitySpec<string>[] = families
+    .filter((f) => passes(f.id))
+    .map((f) => ({ ...VSM_FIELD_SPECS.cycleTime, key: f.id, label: `${f.name} C/T`, hint: undefined, advanced: false }));
+  const values = Object.fromEntries(
+    specs.map((sp) => [sp.key, vsm.cycleByFamily[sp.key] ?? { value: null, unit: vsm.fields.cycleTime.unit }]),
+  );
+  return (
+    <div className="family-matrix" data-testid="aile-matrisi">
+      <h4>Ürün aileleri</h4>
+      <p className="muted small">Bu prosesten geçen aileler. Aileye özel C/T boşsa ortak C/T kullanılır.</p>
+      <div className="family-checks">
+        {families.map((f) => (
+          <label key={f.id} className="check">
+            <input type="checkbox" checked={passes(f.id)} onChange={(e) => toggle(f.id, e.target.checked)} data-testid={`aile-gecer-${f.id}`} />
+            <span className="family-dot" style={{ background: f.color }} />
+            {f.name}
+          </label>
+        ))}
+      </div>
+      <QuantityTable
+        specs={specs}
+        values={values}
+        onChange={(key, q) => {
+          const next = { ...vsm.cycleByFamily };
+          if (q.value === null) delete next[key];
+          else next[key] = q;
+          onChange({ ...vsm, cycleByFamily: next });
+        }}
+        idPrefix="aile-ct"
+      />
     </div>
   );
 }
@@ -251,17 +297,20 @@ function KaizenEditor({ kaizen, onChange }: { kaizen: KaizenData; onChange: (k: 
 
 function InventoryEditor({
   inventory,
-  demand,
-  packQuantity,
+  vsmMap,
   isSupermarket,
   onChange,
 }: {
   inventory: InventoryData;
-  demand: VsmQuantity;
-  packQuantity: VsmQuantity;
+  vsmMap: VsmMapData;
   isSupermarket: boolean;
   onChange: (inv: InventoryData) => void;
 }) {
+  const multi = vsmMap.families.length > 1;
+  const fam = vsmMap.families.find((f) => f.id === inventory.familyId) ?? null;
+  const demand = stockDemand(inventory, vsmMap);
+  // Kanban kartı paket adedine bağlı: stok bir aileye aitse o ailenin, tek aileli haritada o ailenin paket adedi.
+  const packQuantity: VsmQuantity = fam ? fam.packQuantity : multi ? { value: null, unit: 'adet' } : vsmMap.families[0].packQuantity;
   const wait = inventoryDays(inventory.stock, demand);
   const sizing = supermarketSizing(inventory.replenishTime, inventory.safetyRate, demand, packQuantity);
   return (
@@ -273,6 +322,24 @@ function InventoryEditor({
         onChange={(key, q) => onChange({ ...inventory, [key]: q })}
         idPrefix="stok"
       />
+      {multi && (
+        <label>
+          Ürün ailesi
+          <select
+            className="select"
+            value={inventory.familyId ?? ''}
+            onChange={(e) => onChange({ ...inventory, familyId: e.target.value || null })}
+            data-testid="stok-aile"
+          >
+            <option value="">Tüm aileler (ortak stok)</option>
+            {vsmMap.families.map((f) => (
+              <option key={f.id} value={f.id}>
+                {f.name}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
       <p className="small" data-testid="stok-bekleme">
         Bekleme:{' '}
         {wait.days === null ? (
@@ -329,13 +396,15 @@ function VsmEditor({
   vsm,
   taktSec,
   netSec,
-  demand,
+  load,
+  families,
   onChange,
 }: {
   vsm: VsmData;
   taktSec: number | null;
   netSec: number | null;
-  demand: VsmQuantity;
+  load: number | null;
+  families: ProductFamily[];
   onChange: (vsm: VsmData) => void;
 }) {
   const basic = VSM_FIELDS.filter((f) => !f.advanced);
@@ -368,7 +437,8 @@ function VsmEditor({
           <span className="calc-value">{formatDuration(taktSec!)}</span>) büyük. Bu proses talebi karşılayamayabilir.
         </p>
       )}
-      <OeeBreakdown vsm={vsm} netSec={netSec} demand={demand} />
+      <OeeBreakdown vsm={vsm} netSec={netSec} load={load} />
+      {families.length > 1 && <FamilyMatrix vsm={vsm} families={families} onChange={onChange} />}
       {showEffective && (
         <p className="small" data-testid="etkin-ct">
           Etkin C/T (uptime ve hurda dahil): <span className="calc-value">{formatDuration(effective!)}</span>

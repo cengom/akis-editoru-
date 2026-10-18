@@ -1,5 +1,6 @@
-import { isStockKind, type FlowEdge, type ShapeKind, type ShapeNode, type VsmData, type VsmMapData, type VsmQuantity } from './types';
+import { isStockKind, type FlowEdge, type ProductFamily, type ShapeKind, type ShapeNode, type VsmData, type VsmMapData, type VsmQuantity } from './types';
 import { toSeconds } from './vsm';
+import { familyCycle, isMultiFamily, passes, passingFamilies, stockDemand, stockInView, viewFamily, viewDemand, viewPack } from './families';
 
 /*
  * VSM özet hesapları (klasik yöntem, Rother & Shook "Learning to See"):
@@ -21,7 +22,7 @@ export interface TaktResult {
 /** Takt süresi = net çalışma süresi / müşteri talebi. */
 export function computeTakt(map: VsmMapData): TaktResult {
   const net = toSeconds(map.fields.netWorkingTime);
-  const demand = map.fields.customerDemand.value;
+  const demand = viewDemand(map).value;
   if (net === null && demand === null) return { seconds: null, reason: 'Müşteri talebi ve net çalışma süresi girilmedi.' };
   if (demand === null) return { seconds: null, reason: 'Müşteri talebi girilmedi.' };
   if (net === null) return { seconds: null, reason: 'Net çalışma süresi girilmedi.' };
@@ -115,6 +116,26 @@ export function effectiveCycleSeconds(vsm: VsmData, netSec: number | null = null
   return ct / u / good;
 }
 
+/**
+ * Prosesin karma yükü: geçen ailelerin talep × C/T toplamı.
+ * `weightedCycleSec` = Σ(talep × C/T) ÷ Σ talep (yalnızca talebi ve C/T'si bilinen aileler).
+ */
+export function familyLoad(vsm: VsmData, map: VsmMapData, netSec: number | null) {
+  let work = 0;
+  let qty = 0;
+  for (const fam of passingFamilies(vsm, map)) {
+    const ct = toSeconds(familyCycle(vsm, fam.id));
+    const d = fam.demand.value;
+    if (ct === null || d === null) continue;
+    work += d * ct;
+    qty += d;
+  }
+  return {
+    weightedCycleSec: qty > 0 ? work / qty : null,
+    rawLoad: qty > 0 && netSec && netSec > 0 ? work / netSec : null,
+  };
+}
+
 /** Çevrim süresi takt süresinden büyükse true. */
 export function isOverTakt(cycleSeconds: number | null, taktSeconds: number | null): boolean {
   return cycleSeconds !== null && taktSeconds !== null && cycleSeconds > taktSeconds;
@@ -180,6 +201,12 @@ export interface ProcessStep {
   /** C/T ≤ takt ama etkin C/T > takt (duruş/hurda nedeniyle kapasite yetmiyor) */
   overTaktEffective: boolean;
   oee: OeeResult;
+  /** Ham yük = Σ(aile talebi × aile C/T) ÷ net süre (duruş/hurda hariç) */
+  rawLoad: number | null;
+  /** Yük = ham yük ÷ kullanılabilirlik ÷ kalite; %100 üstü kapasite yetersiz */
+  load: number | null;
+  /** Prosesten geçen aileler */
+  familyIds: string[];
 }
 
 export interface InventoryStep extends InventoryDays {
@@ -200,8 +227,21 @@ export interface Total {
   filled: number;
 }
 
+export interface FamilySummary {
+  family: ProductFamily;
+  taktSec: number | null;
+  pitchSec: number | null;
+}
+
 export interface VsmSummary {
+  /** Görünümün takt'ı: seçili aile ya da karma (toplam talep) */
   takt: TaktResult;
+  multiFamily: boolean;
+  /** Seçili aile; "Tümü" ise `null` */
+  view: ProductFamily | null;
+  /** Birden çok aile ve "Tümü" görünümü */
+  mixed: boolean;
+  families: FamilySummary[];
   /** VSM verisi girilmiş prosesler, soldan sağa */
   processes: ProcessStep[];
   /** Stok verisi girilmiş üçgenler, soldan sağa */
@@ -312,16 +352,28 @@ export function flowOrder(nodes: ShapeNode[], edges: FlowEdge[]): { rank: Map<st
 
 export function computeSummary(nodes: ShapeNode[], edges: FlowEdge[], map: VsmMapData): VsmSummary {
   const takt = computeTakt(map);
-  const demand = map.fields.customerDemand;
   const netSec = toSeconds(map.fields.netWorkingTime);
+  const multi = isMultiFamily(map);
+  const view = viewFamily(map);
+  /** "Tümü" görünümü ve birden çok aile: karma model (yük tabanlı) */
+  const mixed = multi && !view;
 
   const processes: ProcessStep[] = nodes
     .filter((n) => n.type === 'process' && n.data.vsm && Object.values(n.data.vsm.fields).some((q) => q.value !== null))
+    .filter((n) => !view || !multi || passes(n.data.vsm!, map, view.id))
     .map((n) => {
-      const f = n.data.vsm!.fields;
-      const cycleSec = toSeconds(f.cycleTime);
-      const effectiveCycleSec = effectiveCycleSeconds(n.data.vsm!, netSec);
-      const overTakt = isOverTakt(cycleSec, takt.seconds);
+      const vsm = n.data.vsm!;
+      const f = vsm.fields;
+      const oee = oeeOf(vsm, netSec);
+      const famLoad = familyLoad(vsm, map, netSec);
+      // Aile görünümünde o ailenin C/T'si; karma görünümde talebe göre ağırlıklı C/T.
+      const cycleSec = view ? toSeconds(familyCycle(vsm, view.id)) : (famLoad.weightedCycleSec ?? toSeconds(f.cycleTime));
+      const a = oee.availability ?? 1;
+      const q = oee.quality ?? 1;
+      const effectiveCycleSec = cycleSec === null || a <= 0 || q <= 0 ? null : cycleSec / a / q;
+      const load = famLoad.rawLoad === null || a <= 0 || q <= 0 ? null : famLoad.rawLoad / a / q;
+      const overTakt = mixed ? famLoad.rawLoad !== null && famLoad.rawLoad > 1 + 1e-9 : isOverTakt(cycleSec, takt.seconds);
+      const overTaktEffective = !overTakt && (mixed ? load !== null && load > 1 + 1e-9 : isOverTakt(effectiveCycleSec, takt.seconds));
       return {
         kind: 'process' as const,
         id: n.id,
@@ -332,14 +384,18 @@ export function computeSummary(nodes: ShapeNode[], edges: FlowEdge[], map: VsmMa
         operators: f.operators.value,
         distance: f.distance.value,
         overTakt,
-        overTaktEffective: !overTakt && isOverTakt(effectiveCycleSec, takt.seconds),
-        oee: oeeOf(n.data.vsm!, netSec),
+        overTaktEffective,
+        oee,
+        rawLoad: famLoad.rawLoad,
+        load,
+        familyIds: passingFamilies(vsm, map).map((x) => x.id),
       };
     })
     .sort(byX);
 
   const inventories: InventoryStep[] = nodes
     .filter((n) => isStockKind(n.type ?? '') && n.data.inventory && n.data.inventory.stock.value !== null)
+    .filter((n) => stockInView(n.data.inventory, map))
     .map((n) => ({
       kind: 'inventory' as const,
       shapeKind: n.type as ShapeKind,
@@ -347,7 +403,7 @@ export function computeSummary(nodes: ShapeNode[], edges: FlowEdge[], map: VsmMa
       title: n.data.title.trim() || 'Stok',
       x: n.position.x,
       stock: n.data.inventory!.stock,
-      ...inventoryDays(n.data.inventory!.stock, demand),
+      ...inventoryDays(n.data.inventory!.stock, stockDemand(n.data.inventory!, map)),
     }))
     .sort(byX);
 
@@ -373,16 +429,39 @@ export function computeSummary(nodes: ShapeNode[], edges: FlowEdge[], map: VsmMa
 
   const withCycle = processes.filter((p) => p.cycleSec !== null);
   const bottleneck = withCycle.length ? withCycle.reduce((a, b) => ((b.cycleSec as number) > (a.cycleSec as number) ? b : a)) : null;
-  const requiredOperators =
-    takt.seconds && takt.seconds > 0 && processingSec.value !== null ? Math.ceil(processingSec.value / takt.seconds - 1e-9) : null;
+  // Karma görünümde: tüm ailelerin iş içeriği ÷ günlük süre; tek ailede: ∑C/T ÷ takt (aynı sonuç).
+  const loads = processes.map((p) => p.rawLoad).filter((v): v is number => v !== null);
+  const requiredOperators = mixed
+    ? loads.length
+      ? Math.ceil(loads.reduce((a, b) => a + b, 0) - 1e-9)
+      : null
+    : takt.seconds && takt.seconds > 0 && processingSec.value !== null
+      ? Math.ceil(processingSec.value / takt.seconds - 1e-9)
+      : null;
 
-  const pack = map.fields.packQuantity.value;
+  const pack = viewPack(map).value;
   const pitchSec = takt.seconds !== null && pack !== null && pack > 0 ? takt.seconds * pack : null;
   const pitchReason =
-    pitchSec !== null ? null : takt.seconds === null ? 'Önce takt hesaplanmalı.' : 'Paket adedi girilmedi.';
+    pitchSec !== null
+      ? null
+      : mixed
+        ? 'Aile seçin (pitch aile başına).'
+        : takt.seconds === null
+          ? 'Önce takt hesaplanmalı.'
+          : 'Paket adedi girilmedi.';
+
+  const families: FamilySummary[] = map.families.map((fam) => {
+    const t = netSec && fam.demand.value ? netSec / fam.demand.value : null;
+    const pk = fam.packQuantity.value;
+    return { family: fam, taktSec: t, pitchSec: t !== null && pk ? t * pk : null };
+  });
 
   return {
     takt,
+    multiFamily: multi,
+    view,
+    mixed,
+    families,
     processes,
     inventories,
     steps,

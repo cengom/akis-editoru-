@@ -593,3 +593,21 @@ details.help { margin-bottom: 12px; }
 .oee-total.is-low p { color: #92400e; }
 .calc-value.over, strong.over { color: #b91c1c; }
 .vsm-box tr.oee-low td { color: #b45309; }
+
+/* ---------- Ürün aileleri ---------- */
+.family-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; flex: none; vertical-align: middle; }
+.family-editor { display: grid; gap: 6px; }
+.family-card { border: 1px solid #e5e7eb; border-radius: 6px; padding: 6px; display: grid; gap: 4px; }
+.family-head { display: flex; align-items: center; gap: 6px; }
+.family-head input { padding: 4px 6px; font-weight: 600; }
+.family-chips { display: flex; flex-wrap: wrap; gap: 3px; padding: 3px 4px; border-bottom: 1px solid #e5e7eb; }
+.family-chip { display: inline-flex; align-items: center; gap: 3px; font-size: 10px; color: #374151; }
+.family-chip .family-dot { width: 8px; height: 8px; }
+.family-matrix { display: grid; gap: 4px; padding: 8px; border: 1px solid #e5e7eb; border-radius: 6px; }
+.family-matrix h4 { margin: 0; font-size: 13px; }
+.family-checks { display: flex; flex-wrap: wrap; gap: 4px 12px; }
+.family-checks label.check { display: inline-flex; align-items: center; gap: 4px; font-weight: 400; font-size: 13px; }
+.family-view-note { margin: 0; padding: 6px 8px; background: #f5f3ff; border: 1px solid #ddd6fe; border-radius: 6px; color: #4c1d95; }
+.compare-table tr.is-current th, .compare-table tr.is-current td { background: #eff6ff; }
+.shape.is-dimmed { opacity: 0.3; }
+.family-select { font: inherit; padding: 4px 6px; border: 1px solid var(--border); border-radius: 6px; background: #fff; }

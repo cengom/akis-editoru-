@@ -1,4 +1,4 @@
-import type { VsmData, VsmQuantity } from '../model/types';
+import type { VsmData } from '../model/types';
 import { formatNumber, formatPercent } from '../model/vsm';
 import { oeeOf, type VsmSummary } from '../model/vsmCalc';
 
@@ -20,9 +20,9 @@ function Bar({ label, value, note, testId }: { label: string; value: number | nu
 }
 
 /** Proses panelinde OEE dökümü: Kullanılabilirlik × Performans × Kalite. */
-export function OeeBreakdown({ vsm, netSec, demand }: { vsm: VsmData; netSec: number | null; demand: VsmQuantity }) {
+/** `load`: prosesin talep yükü (özetten; ürün ailelerinin toplam iş içeriği ÷ kullanılabilir süre). */
+export function OeeBreakdown({ vsm, netSec, load }: { vsm: VsmData; netSec: number | null; load: number | null }) {
   const r = oeeOf(vsm, netSec);
-  const load = r.capacityPerDay && demand.value !== null ? demand.value / r.capacityPerDay : null;
   return (
     <div className="oee-box" data-testid="oee-dokum">
       <h4>OEE</h4>

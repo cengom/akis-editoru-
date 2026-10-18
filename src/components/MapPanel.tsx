@@ -3,7 +3,8 @@ import type { ShapeNode, VsmMapData } from '../model/types';
 import type { Total, VsmSummary } from '../model/vsmCalc';
 import { VSM_MAP_FIELDS, formatDays, formatDuration, formatNumber, formatPercent } from '../model/vsm';
 import { QuantityTable } from './QuantityFields';
-import { TaktChart } from './TaktChart';
+import { LoadChart, TaktChart } from './TaktChart';
+import { FamilyEditor } from './FamilyEditor';
 import { OeeTable } from './OeeBreakdown';
 import { KaizenList } from './KaizenList';
 import { StateCompare } from './StateCompare';
@@ -32,11 +33,19 @@ export function MapPanel({ vsmMap, summary, kaizens, compare, onChange, onSelect
       <section className="vsm-section" aria-label="VSM genel verileri">
         <h3>VSM genel verileri</h3>
         <p className="muted small">Tüm hat / harita için geçerlidir. Boş alan "veri yok" demektir.</p>
+        <h4 className="chart-title">Ürün aileleri</h4>
+        <p className="muted small">
+          Müşteri talebi ve paket adedi aile başınadır. Tek ürün grubu varsa tek aile yeterlidir; birden çok aile
+          aynı prosesleri paylaşıyorsa ekleyin.
+        </p>
+        <FamilyEditor vsmMap={vsmMap} onChange={onChange} />
         <QuantityTable specs={basic} values={vsmMap.fields} onChange={setField} idPrefix="harita" />
-        <details open={advanced.some((f) => vsmMap.fields[f.key].value !== null) || undefined}>
-          <summary>İsteğe bağlı alanlar</summary>
-          <QuantityTable specs={advanced} values={vsmMap.fields} onChange={setField} idPrefix="harita" />
-        </details>
+        {advanced.length > 0 && (
+          <details open={advanced.some((f) => vsmMap.fields[f.key].value !== null) || undefined}>
+            <summary>İsteğe bağlı alanlar</summary>
+            <QuantityTable specs={advanced} values={vsmMap.fields} onChange={setField} idPrefix="harita" />
+          </details>
+        )}
         <label className="check">
           <input
             type="checkbox"
@@ -89,8 +98,16 @@ export function MapPanel({ vsmMap, summary, kaizens, compare, onChange, onSelect
         <p className="muted small">
           <span className="calc-value">Mavi italik</span> değerler otomatik hesaplanır; elle değiştirilemez.
         </p>
+        {summary.multiFamily && (
+          <p className="family-view-note small" data-testid="aile-gorunum">
+            Görünüm:{' '}
+            <strong>{summary.view ? summary.view.name : 'Tüm aileler (karma model)'}</strong>
+            {summary.view ? ' — bu ailenin C/T ve takt değerleri.' : ' — ağırlıklı C/T, karma takt ve proses yükü.'}
+          </p>
+        )}
+        {summary.multiFamily && <FamilyTable summary={summary} />}
         <dl>
-          <dt>Takt süresi</dt>
+          <dt>{summary.mixed ? 'Karma takt (toplam talep)' : summary.view && summary.multiFamily ? `Takt (${summary.view.name})` : 'Takt süresi'}</dt>
           <dd>
             {summary.takt.seconds !== null ? (
               <span className="calc-value" data-testid="ozet-takt">
@@ -173,8 +190,15 @@ export function MapPanel({ vsmMap, summary, kaizens, compare, onChange, onSelect
             )}
           </dd>
         </dl>
-        <h4 className="chart-title">Takt – çevrim süresi</h4>
-        <TaktChart summary={summary} onSelectNode={onSelectNode} />
+
+        {summary.mixed ? (
+          <>
+            <h4 className="chart-title">Proses yükü (tüm aileler)</h4>
+            <LoadChart summary={summary} onSelectNode={onSelectNode} />
+          </>
+        ) : (
+          <TaktChart summary={summary} onSelectNode={onSelectNode} />
+        )}
         <OeeTable summary={summary} onSelectNode={onSelectNode} />
         {summary.inventoriesMissingDemand > 0 && (
           <p className="warning-box">
@@ -225,6 +249,34 @@ export function MapPanel({ vsmMap, summary, kaizens, compare, onChange, onSelect
       {compare && <StateCompare current={compare.current} future={compare.future} />}
       <KaizenList kaizens={kaizens} onSelectNode={onSelectNode} />
     </div>
+  );
+}
+
+/** Aile başına talep, takt ve pitch. */
+function FamilyTable({ summary }: { summary: VsmSummary }) {
+  return (
+    <table className="compare-table" data-testid="aile-tablosu">
+      <thead>
+        <tr>
+          <th scope="col">Aile</th>
+          <th scope="col">Talep</th>
+          <th scope="col">Takt</th>
+          <th scope="col">Pitch</th>
+        </tr>
+      </thead>
+      <tbody>
+        {summary.families.map(({ family, taktSec, pitchSec }) => (
+          <tr key={family.id} className={summary.view?.id === family.id ? 'is-current' : undefined}>
+            <th scope="row">
+              <span className="family-dot" style={{ background: family.color }} aria-hidden="true" /> {family.name}
+            </th>
+            <td>{family.demand.value === null ? '—' : formatNumber(family.demand.value)}</td>
+            <td>{taktSec === null ? '—' : <span className="calc-value">{formatDuration(taktSec)}</span>}</td>
+            <td>{pitchSec === null ? '—' : <span className="calc-value">{formatDuration(pitchSec)}</span>}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
   );
 }
 
