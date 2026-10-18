@@ -5,8 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "typecheck": "tsc --noEmit -p tsconfig.json",
-    "build": "tsc --noEmit -p tsconfig.json && vite build",
+    "typecheck": "node node_modules/typescript/bin/tsc --noEmit -p tsconfig.json",
+    "build": "node node_modules/typescript/bin/tsc --noEmit -p tsconfig.json && vite build",
     "preview": "vite preview",
     "dev:sahte-bulut": "VITE_CLOUD_MOCK=1 vite --port 5174",
     "test": "vitest run",
