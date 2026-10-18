@@ -72,7 +72,10 @@ yalnızca biri olacak; uygulama bir VSM hesaplayıcısına dönüştürülmemeli
 - `service_role` / secret anahtar asla istemci koduna ya da `.env` dosyalarına girmez. Erişim güvenliği
   RLS ile sağlanır; yeni tablo eklenirse RLS kuralları da eklenmeli.
 - Bulut akışlarını `npm run dev:sahte-bulut` (port 5174) ile dene; gerçek Supabase testi kullanıcıyla yapılır.
-- Bu klasörün dışına dokunma.
+- Çalışma klasörü: `~/Documents/GitHub/akis-editoru-` (GitHub: `cengom/akis-editoru-`, herkese açık).
+  Bu klasörün dışına dokunma. Eski `~/Documents/akis-editoru` kopyası artık kullanılmıyor.
+- Push yalnızca kullanıcının açık onayıyla. Depo herkese açık: `.env.local`, `referans-vsm.jpg`,
+  `node_modules`, `dist` git'e girmemeli (`.gitignore`). Commit öncesi `git status` ile kontrol et.
 - Yaptığın özelliği tarayıcıda gerçekten dene; denemediğini "çalışıyor" diye sunma.
 - Biten/sıradaki işleri `TASKS.md`'de güncel tut.
 
@@ -98,7 +101,8 @@ ikinci yapılandırmayı kullan.
 ## Referans
 `referans-vsm.jpg` (316×632 px) klasörde. Görsel **90° yan yatmış**; okumak için saat yönünde 90°
 çevrilmeli (dosyanın kendisi değiştirilmedi). Yalnızca tasarım referansıdır; otomatik diyagrama
-dönüştürülmeyecek. Kaynağı/telif durumu bilinmediği için git'e eklenmedi (`.gitignore`).
+dönüştürülmeyecek. Kaynağı/telif durumu bilinmediği için git takibinden çıkarıldı (`.gitignore`);
+ancak ilk GitHub yüklemesinde (commit `7eed75e`) yer aldığı için o commit'in geçmişinde hâlâ görünür.
 
 Görselde görülen VSM düzeni (sonraki aşamalar için):
 - Üstte bilgi akışı: müşteri talebi kutusu, üretim planlama, "Weekly" etiketli bilgi okları,

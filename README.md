@@ -18,7 +18,8 @@ Bulut ayarlanmamışsa (Supabase bilgileri girilmemişse) uygulama yalnızca yer
 Gerekenler: **Node.js 20.19+ veya 22.12+** (geliştirildiği sürüm: Node 24.21.0, npm 11.19.0).
 
 ```bash
-cd ~/Documents/akis-editoru
+git clone https://github.com/cengom/akis-editoru-.git
+cd akis-editoru-
 npm install
 ```
 

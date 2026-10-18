@@ -1,0 +1,22 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "akis-editoru",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "run",
+        "dev"
+      ],
+      "port": 5173
+    },
+    {
+      "name": "akis-editoru-acik-sunucu",
+      "url": "http://localhost:5173"
+    },
+    {
+      "name": "akis-editoru-sahte-bulut-acik-sunucu",
+      "url": "http://localhost:5174"
+    }
+  ]
+}
