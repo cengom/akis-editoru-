@@ -41,6 +41,14 @@ Diğer komutlar:
 | `npm run build` | Tür kontrolü + üretim derlemesi (`dist/` klasörü) |
 | `npm run preview` | Derlenmiş sürümü yerelde açar |
 
+### Otomatik testler (GitHub Actions)
+
+GitHub'a her push'ta (ve pull request'te) `.github/workflows/test.yml` çalışır: bağımlılıkları kurar,
+tür kontrolü, hesap testleri (`npm test`) ve üretim derlemesi yapar. Sonucu GitHub'da deponun
+**Actions** sekmesinde ya da commit'in yanındaki ✓ / ✗ işaretinde görürsünüz. Ücretsizdir ve gizli
+anahtar kullanmaz. Not: Vercel yayını bundan bağımsızdır; testler başarısız olsa da Vercel yayınlar.
+Bu yüzden push'tan önce yerelde `npm test` ve `npm run build` çalıştırın.
+
 ## Bulut kaydını kurma (Supabase, ücretsiz katman)
 
 Bu adımları **siz** yapmalısınız; hesap ve proje sizin adınıza açılır.

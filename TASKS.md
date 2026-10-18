@@ -105,7 +105,8 @@
 - [x] Otomatik hesap testleri (Vitest, `npm test`): takt, OEE, stok günü, lead time, aileler, eski sürüm geçişleri
 - [x] Hata ekranı: beyaz sayfa yerine kaydı indirme ve yedeğe alıp yeniden başlama
 - [x] Parti beklemesi (isteğe bağlı lead time'a ekleme), hız belirleyici proses ve akış kontrolleri, EPEI hesabı — sürüm 9
-- [ ] Testleri GitHub'da her push'ta otomatik çalıştırma (GitHub Actions, ücretsiz)
+- [x] Testleri GitHub'da her push'ta otomatik çalıştırma (GitHub Actions: typecheck + test + build)
+- [ ] İsteğe bağlı: Vercel'de yayını testler geçtikten sonra yapmak (Vercel "Ignored Build Step" ya da GitHub'dan yayın)
 - [ ] Zaman çizgisini tuval koordinatlarında (çizimle birlikte yakınlaşan) seçenek olarak sunmak
 - [ ] Vardiya başına net süre girişi (günlük toplamı otomatik hesaplama)
 - [ ] Veri kutusunu düğüm boyutuna dahil etme ya da alt bağlantı noktasını kutunun altına taşıma seçeneği

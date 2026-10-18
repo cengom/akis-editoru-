@@ -1,0 +1,32 @@
+# Her push'ta ve pull request'te: tür kontrolü, hesap testleri ve üretim derlemesi.
+# GitHub'ın ücretsiz çalıştırıcılarında çalışır; gizli anahtar kullanmaz (bulut ayarı olmadan derlenir).
+name: Testler
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Tür kontrolü, testler ve derleme
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - name: Bağımlılıkları kur
+        run: npm ci
+      - name: Tür kontrolü
+        run: npm run typecheck
+      - name: Hesap testleri
+        run: npm test
+      - name: Üretim derlemesi
+        run: npm run build

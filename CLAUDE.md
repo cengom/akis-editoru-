@@ -109,6 +109,8 @@ yalnızca biri olacak; uygulama bir VSM hesaplayıcısına dönüştürülmemeli
   Bu klasörün dışına dokunma. Eski `~/Documents/akis-editoru` kopyası artık kullanılmıyor.
 - Push yalnızca kullanıcının açık onayıyla. Depo herkese açık: `.env.local`, `referans-vsm.jpg`,
   `node_modules`, `dist` git'e girmemeli (`.gitignore`). Commit öncesi `git status` ile kontrol et.
+- GitHub Actions (`.github/workflows/test.yml`) her push'ta typecheck + test + build çalıştırır; Vercel
+  yayını buna bağlı değildir, bu yüzden yerel kontrol yine şarttır.
 - Hesap ya da kayıt formatı değişirse `src/model/__tests__` altına test ekle; commit öncesi `npm test` ve
   `npm run build` geçmeli. Testler saf model fonksiyonlarını dener (tarayıcı/DOM yok).
 - Yaptığın özelliği tarayıcıda gerçekten dene; denemediğini "çalışıyor" diye sunma.
