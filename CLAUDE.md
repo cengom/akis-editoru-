@@ -40,6 +40,9 @@ yalnızca biri olacak; uygulama bir VSM hesaplayıcısına dönüştürülmemeli
 - `src/model/example.ts` — uydurma örnek üretim süreci (gerçek veri yok).
 - `src/nodes/ShapeNodeView.tsx` — tüm şekiller için tek düğüm bileşeni; şeklin türü `node.type` alanında.
 - `src/components/` — `Toolbar`, `Palette`, `PropertiesPanel`, `ConfirmDialog`.
+- `src/components/ErrorBoundary.tsx` — beklenmeyen hatada çıkan ekran (`main.tsx` sarar). Kayıtları
+  ayrıştırmadan okur (`rawSavedDrawings`), silmeden yedeğe taşır (`moveDrawingsAside`). Geliştirmede
+  `?hata-testi` adresi bilerek hata verir.
 - `src/App.tsx` — editör durumu (nodes/edges), sürükle-bırak, bağlantı, otomatik kayıt, içe/dışa aktarma.
 - `src/cloud/` — bulut katmanı:
   - `types.ts` — `CloudBackend` arayüzü (oturum + proje CRUD). Supabase ve sahte arka uç bunu uygular.
@@ -102,6 +105,8 @@ yalnızca biri olacak; uygulama bir VSM hesaplayıcısına dönüştürülmemeli
   Bu klasörün dışına dokunma. Eski `~/Documents/akis-editoru` kopyası artık kullanılmıyor.
 - Push yalnızca kullanıcının açık onayıyla. Depo herkese açık: `.env.local`, `referans-vsm.jpg`,
   `node_modules`, `dist` git'e girmemeli (`.gitignore`). Commit öncesi `git status` ile kontrol et.
+- Hesap ya da kayıt formatı değişirse `src/model/__tests__` altına test ekle; commit öncesi `npm test` ve
+  `npm run build` geçmeli. Testler saf model fonksiyonlarını dener (tarayıcı/DOM yok).
 - Yaptığın özelliği tarayıcıda gerçekten dene; denemediğini "çalışıyor" diye sunma.
 - Biten/sıradaki işleri `TASKS.md`'de güncel tut.
 
@@ -111,6 +116,7 @@ npm install          # bağımlılıkları kur
 npm run dev          # geliştirme sunucusu: http://localhost:5173
 npm run dev:sahte-bulut  # sahte bulutlu geliştirme sunucusu: http://localhost:5174
 npm run typecheck    # TypeScript kontrolü (tsc --noEmit)
+npm test             # Vitest hesap testleri (src/model/__tests__)
 npm run build        # tsc + üretim derlemesi (dist/)
 npm run preview      # derlenmiş sürümü yerelde aç
 ```

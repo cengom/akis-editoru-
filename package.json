@@ -8,7 +8,9 @@
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "build": "tsc --noEmit -p tsconfig.json && vite build",
     "preview": "vite preview",
-    "dev:sahte-bulut": "VITE_CLOUD_MOCK=1 vite --port 5174"
+    "dev:sahte-bulut": "VITE_CLOUD_MOCK=1 vite --port 5174",
+    "test": "vitest run",
+    "test:izle": "vitest"
   },
   "dependencies": {
     "@supabase/supabase-js": "2.117.2",
@@ -22,6 +24,7 @@
     "@types/react-dom": "19.3.0",
     "@vitejs/plugin-react": "6.1.2",
     "typescript": "7.0.2",
-    "vite": "8.3.4"
+    "vite": "8.3.4",
+    "vitest": "5.0.3"
   }
 }

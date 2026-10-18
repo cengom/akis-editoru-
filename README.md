@@ -37,6 +37,7 @@ Diğer komutlar:
 | --- | --- |
 | `npm run dev:sahte-bulut` | Supabase olmadan bulut ekranlarını denemek için **sahte bulutlu** geliştirme sunucusu (http://localhost:5174). Veriler gerçek sunucuya gitmez; yalnızca o tarayıcıda durur. |
 | `npm run typecheck` | TypeScript tür kontrolü |
+| `npm test` | Otomatik hesap testleri (Vitest): takt, OEE, stok günü, lead time, ürün aileleri, eski dosya geçişleri |
 | `npm run build` | Tür kontrolü + üretim derlemesi (`dist/` klasörü) |
 | `npm run preview` | Derlenmiş sürümü yerelde açar |
 
@@ -188,6 +189,15 @@ Uygulama tek sayfalık statik bir sitedir; sunucu kodu yoktur.
   kaybolmaz. Oturum kapanmışsa değişiklikler ayrıca saklanır ve yerel taslak olarak geri açılabilir.
 - **Yedeklemek / paylaşmak:** "JSON dışa aktar" ile dosya indirin, "JSON içe aktar" ile geri açın
   (her iki modda da çalışır).
+
+## Hata olursa
+
+Uygulamada beklenmeyen bir hata olursa beyaz sayfa yerine **hata ekranı** çıkar. Çizim silinmez:
+ekrandan sayfayı yenileyebilir, son kaydı (yerel taslak ya da bulut projesinin kaydedilmemiş hâli) JSON
+dosyası olarak indirebilir ve "JSON içe aktar" ile yeniden açabilirsiniz. Hata tekrar ederse
+**"Kaydı yedeğe al, yeniden başla"** kaydı tarayıcıda ayrı bir yedeğe taşır (`akis-editoru.hata-yedek.*`)
+ve uygulama ilk açılıştaki gibi açılır; yedek, hata ekranından indirilmeye devam eder.
+Geliştirmede ekranı denemek için: http://localhost:5173/?hata-testi (yayındaki sürümde çalışmaz).
 
 ## Kayıt formatı
 

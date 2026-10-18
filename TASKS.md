@@ -102,6 +102,10 @@
 - [x] OEE bileşenleri (A × P × Q, ideal C/T, duruşlardan kullanılabilirlik, kapasite ve talep yükü) — sürüm 7
 - [x] Geri al / İleri al düğmeleri yazılı ve belirgin
 - [x] Birden fazla ürün ailesi, karma model (aile talebi/takt, ürün–proses matrisi, proses yükü, aile görünümü) — sürüm 8
+- [x] Otomatik hesap testleri (Vitest, `npm test`): takt, OEE, stok günü, lead time, aileler, eski sürüm geçişleri
+- [x] Hata ekranı: beyaz sayfa yerine kaydı indirme ve yedeğe alıp yeniden başlama
+- [ ] VSM yöntem eksikleri: parti bekleme (proses lead time), hız belirleyici proses, EPEI hesabı
+- [ ] Testleri GitHub'da her push'ta otomatik çalıştırma (GitHub Actions, ücretsiz)
 - [ ] Zaman çizgisini tuval koordinatlarında (çizimle birlikte yakınlaşan) seçenek olarak sunmak
 - [ ] Vardiya başına net süre girişi (günlük toplamı otomatik hesaplama)
 - [ ] Veri kutusunu düğüm boyutuna dahil etme ya da alt bağlantı noktasını kutunun altına taşıma seçeneği

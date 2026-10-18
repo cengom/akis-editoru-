@@ -96,3 +96,82 @@ export function clearCloudBackup() {
     /* yok sayılır */
   }
 }
+
+/* ---------- Hata ekranı için ham kayıtlar ---------- */
+
+/** Hata ekranında "Kaydı yedeğe al, yeniden başla" denince kayıtların taşındığı anahtarların ön eki (silinmez). */
+export const CRASH_BACKUP_PREFIX = 'akis-editoru.hata-yedek.';
+
+export interface RawSavedDrawing {
+  label: string;
+  fileName: string;
+  /** Dosyaya yazılacak JSON metni (JSON içe aktar ile açılabilir) */
+  text: string;
+}
+
+function readKey(key: string): string | null {
+  try {
+    return localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+/** Bulut yedeğinden belge kısmını çıkarır; çıkaramazsa ham metni döndürür. */
+function cloudBackupDocText(text: string): string {
+  try {
+    const raw = JSON.parse(text) as { doc?: unknown };
+    return raw.doc ? JSON.stringify(raw.doc) : text;
+  } catch {
+    return text;
+  }
+}
+
+/**
+ * Tarayıcıdaki kayıtları doğrulamadan, olduğu gibi okur. Hata ekranında kullanılır: uygulama çöktüyse
+ * kaydı ayrıştırmak da hata verebilir, bu yüzden burada ayrıştırma yapılmaz.
+ */
+export function rawSavedDrawings(): RawSavedDrawing[] {
+  const list: RawSavedDrawing[] = [];
+  const draft = readKey(STORAGE_KEY);
+  if (draft) list.push({ label: 'Yerel taslak', fileName: 'akis-editoru-taslak.json', text: draft });
+  const cloud = readKey(CLOUD_BACKUP_KEY);
+  if (cloud) list.push({ label: 'Bulut projesinin kaydedilmemiş hâli', fileName: 'akis-editoru-bulut-yedek.json', text: cloudBackupDocText(cloud) });
+  try {
+    const keys = Object.keys(localStorage).filter((k) => k.startsWith(CRASH_BACKUP_PREFIX)).sort();
+    for (const key of keys) {
+      const stamp = key.slice(CRASH_BACKUP_PREFIX.length);
+      const text = readKey(key);
+      if (!text) continue;
+      try {
+        const saved = JSON.parse(text) as { draft?: string | null; cloud?: string | null };
+        const day = stamp.slice(0, 10);
+        if (saved.draft) list.push({ label: `Önceki hata yedeği (${day}) — taslak`, fileName: `akis-editoru-hata-yedegi-${day}.json`, text: saved.draft });
+        if (saved.cloud) list.push({ label: `Önceki hata yedeği (${day}) — bulut`, fileName: `akis-editoru-hata-yedegi-bulut-${day}.json`, text: cloudBackupDocText(saved.cloud) });
+      } catch {
+        /* okunamayan yedek atlanır */
+      }
+    }
+  } catch {
+    /* localStorage erişilemiyorsa liste boş kalır */
+  }
+  return list;
+}
+
+/**
+ * Yerel taslağı ve bulut yedeğini silmeden ayrı bir anahtara taşır; uygulama ilk açılıştaki gibi açılır.
+ * Taşınamazsa (ör. depolama dolu) hiçbir şeyi kaldırmaz ve `false` döner.
+ */
+export function moveDrawingsAside(): boolean {
+  const draft = readKey(STORAGE_KEY);
+  const cloud = readKey(CLOUD_BACKUP_KEY);
+  if (!draft && !cloud) return true;
+  try {
+    localStorage.setItem(CRASH_BACKUP_PREFIX + new Date().toISOString(), JSON.stringify({ draft, cloud }));
+    localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(CLOUD_BACKUP_KEY);
+    return true;
+  } catch {
+    return false;
+  }
+}
