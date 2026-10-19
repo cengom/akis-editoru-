@@ -189,6 +189,12 @@ Aşağıda kısa bir özet var.
   kesikli), Elektronik bilgi akışı (zikzaklı), Malzeme akışı / itme (kalın çizgili), Çekme (kavisli),
   Sevkiyat (kalın boş). Var olan bir okun türü, ok
   seçilince sağ panelden değiştirilebilir.
+- **Operatör dengeleme (Yamazumi):** Prosesi seçip paneldeki "İş adımları" bölümüne bir parça için
+  yapılan işleri yazın: ad, süre, tür (değer katan / gerekli / israf) ve operatör (Op 1, Op 2 …). ↑ ↓ ile
+  sıralanır, ✕ ile silinir. Harita panelindeki özette **Yamazumi grafiği** her operatörün (ya da prosesin)
+  işini türlerine göre üst üste gösterir; kesikli çizgi takttır, aşan sütun ⚠ ile işaretlenir. "Tablo"
+  düğmesi aynı veriyi tablo olarak verir. Denge oranı = Σ iş ÷ (operatör sayısı × en yüklü operatör),
+  gereken operatör = ⌈Σ iş ÷ takt⌉. İş adımı girilmemiş proseste C/T ve operatör sayısı kullanılır.
 - **Zaman çizgisi:** "Tuvalin altında zaman çizgisini göster" ile açılır. Stoklar ve prosesler **akış
   oklarına göre** sıralanır (bilgi okları ve geri dönüş döngüleri sırayı etkilemez; oku olmayan şekiller
   yatay konumlarına göre araya girer) ve merdiven olarak gösterilir: **üst basamak stokta bekleme (gün)**, **alt
@@ -239,7 +245,7 @@ JSON dosyası ve tarayıcı kaydı aynı biçimdedir (`src/model/types.ts`):
 ```json
 {
   "app": "akis-editoru",
-  "schemaVersion": 10,
+  "schemaVersion": 11,
   "name": "Diyagram adı",
   "savedAt": "2026-10-15T20:00:00.000Z",
   "viewport": { "x": 0, "y": 0, "zoom": 1 },
@@ -272,7 +278,11 @@ JSON dosyası ve tarayıcı kaydı aynı biçimdedir (`src/model/types.ts`):
             "operators": { "value": 1, "unit": "kişi" },
             "distance": { "value": 15, "unit": "m" }
           },
-          "note": ""
+          "note": "",
+          "workSteps": [
+            { "id": "adim-1", "name": "Parçayı yerleştir", "time": { "value": 12, "unit": "sn" },
+              "kind": "va", "operator": 1 }
+          ]
         } } }
   ],
   "edges": [
@@ -286,6 +296,11 @@ JSON dosyası ve tarayıcı kaydı aynı biçimdedir (`src/model/types.ts`):
 (`inventory`) `"inventory": { "stock": { "value": 120, "unit": "adet" } }` taşır (birim `adet` ya da `gün`).
 Şekil türleri (`kind`): `terminal`, `process`, `decision`, `department`, `note`, `customer`, `supplier`,
 `inventory`, `kaizen`. Bağlantı türleri (`kind`): `flow`, `info`, `material`, `shipment`.
+
+**Sürüm 11 değişikliği:** Proses VSM verisinde `workSteps` (iş adımları; operatör dengeleme /
+Yamazumi için). Her adım: `id`, `name`, `time` (`sn` ya da `dk`; `value: null` = süre girilmedi), `kind`
+(`va` katma değerli, `nva` katma değersiz ama gerekli, `waste` israf) ve `operator` (1–50 tam sayı).
+Bir proseste en fazla 100 adım. Eski dosyalarda boş liste gelir.
 
 **Sürüm 10 değişikliği:** Ürün ailesinde `unitCost` (birim maliyet), stokta `unitValue` (birim değer);
 birimler `TL/adet`, `€/adet`, `$/adet`. Eski dosyalarda boş gelir.

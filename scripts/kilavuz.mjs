@@ -204,10 +204,13 @@ async function screenshots(cdp) {
   await shot(cdp, 'harita-verileri.png', 'section[aria-label="VSM genel verileri"]');
   await shot(cdp, 'ozet.png', '[data-testid="vsm-ozeti"] dl');
   await shot(cdp, 'takt-grafigi.png', '[data-testid="takt-grafigi"]');
+  await shot(cdp, 'yamazumi.png', '[data-testid="yamazumi"]');
   await run(cdp, `${H} await pick('Kesim');`);
   // Hız belirleyici seçimi + OEE + temel alanlar (gelişmiş alanlar kapalı; rehberde tablo olarak var)
   await shotRange(cdp, 'proses-paneli.png', '.pacemaker-toggle', 'section[aria-label="VSM verileri"] details > summary');
   await shot(cdp, 'epei.png', '[data-testid="epei-kutusu"]');
+  await run(cdp, `${H} await deselect(); await pick('Montaj');`);
+  await shot(cdp, 'is-adimlari.png', '[data-testid="is-adimlari"]');
 
   await viewport(cdp, 1440, 900);
   await run(cdp, `${H} document.querySelector('[data-testid="sekme-gelecek"]').click(); await sleep(800); await deselect(); await press('Sığdır'); await sleep(600);`);

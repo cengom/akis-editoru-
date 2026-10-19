@@ -17,6 +17,8 @@ import {
   type VsmFieldKey,
   type VsmMapData,
   type VsmQuantity,
+  type WorkKind,
+  type WorkStep,
 } from './types';
 
 /*
@@ -62,7 +64,44 @@ function inventory(
   return { ...stored, data: { ...stored.data, inventory: { ...emptyInventory(), stock: { value, unit }, ...extra } } };
 }
 
-function withVsm(stored: StoredNode, data: VsmData): StoredNode {
+/** Örnek iş adımları: [ad, süre (sn), tür, operatör]. */
+function workSteps(prefix: string, rows: [string, number, WorkKind, number][]): WorkStep[] {
+  return rows.map(([name, sec, kind, operator], i) => ({
+    id: `${prefix}-${i + 1}`,
+    name,
+    time: { value: sec, unit: 'sn' },
+    kind,
+    operator,
+  }));
+}
+
+/** Montaj iş adımları (mevcut durum): 1. operatör 90 sn (= C/T), 2. operatör 70 sn. Uydurmadır. */
+const MONTAJ_STEPS: [string, number, WorkKind, number][] = [
+  ['Parçaları kutudan al', 12, 'nva', 1],
+  ['Gövdeye yatağı tak', 25, 'va', 1],
+  ['Vidaları sık (4 adet)', 28, 'va', 1],
+  ['Eksik vidayı ara', 10, 'waste', 1],
+  ['Tork kontrolü', 15, 'nva', 1],
+  ['Kapağı tak', 22, 'va', 2],
+  ['Kabloyu bağla', 18, 'va', 2],
+  ['Etiket yapıştır', 8, 'nva', 2],
+  ['Yarı mamulü taşı', 12, 'waste', 2],
+  ['Sonraki parçayı bekle', 10, 'waste', 2],
+];
+
+/** Montaj iş adımları (gelecek durum): israf kaldırıldı, iş iki operatöre dengelendi (55 + 54 sn). */
+const MONTAJ_FUTURE_STEPS: [string, number, WorkKind, number][] = [
+  ['Hazır kitten parça al', 8, 'nva', 1],
+  ['Gövdeye yatağı tak', 25, 'va', 1],
+  ['Vidaları sık (elektrikli tornavida)', 22, 'va', 1],
+  ['Tork kontrolü', 10, 'nva', 2],
+  ['Kapağı tak', 20, 'va', 2],
+  ['Kabloyu bağla', 18, 'va', 2],
+  ['Etiket yapıştır', 6, 'nva', 2],
+];
+
+function withVsm(stored: StoredNode, data: VsmData, steps?: [string, number, WorkKind, number][]): StoredNode {
+  if (steps) data.workSteps = workSteps(stored.id, steps);
   return { ...stored, data: { ...stored.data, vsm: data } };
 }
 
@@ -141,6 +180,7 @@ export function createExampleDocument(): DiagramDocument {
           batchSize: [60, 'adet'],
           idealCycleTime: [80, 'sn'],
         }),
+        MONTAJ_STEPS,
       ),
       node('kalite', 'process', 1190, 50, 'Kalite kontrol', 'Örnek ölçüm yapılır.'),
       node('uygun', 'decision', 1430, 35, 'Uygun mu?'),
@@ -219,13 +259,14 @@ export function createExampleDocument(): DiagramDocument {
 
 /**
  * Örnek gelecek durum (hedef) haritası: mevcut haritanın kopyası üzerinde iyileştirmeler.
- * Paketleme hız belirleyicidir. Montaj kaizen ile 55 sn'ye iner; Kesim sonrası stok süpermarket, Montaj sonrası stok FIFO olur;
+ * Paketleme hız belirleyicidir. Montaj kaizen ile 55 sn'ye iner (israf kaldırılır, iş adımları dengelenir); Kesim sonrası stok süpermarket, Montaj sonrası stok FIFO olur;
  * stoklar azalır. Uydurma değerlerdir.
  */
 function exampleFuture(current: StateContent): StateContent {
   const c = JSON.parse(JSON.stringify(current)) as StateContent;
   const byId = (id: string) => c.nodes.find((n) => n.id === id)!;
   byId('montaj').data.vsm!.fields.cycleTime = { value: 55, unit: 'sn' };
+  byId('montaj').data.vsm!.workSteps = workSteps('montaj', MONTAJ_FUTURE_STEPS);
   byId('kesim').data.vsm!.fields.uptime = { value: 95, unit: '%' };
   byId('kesim').data.vsm!.fields.scrapRate = { value: 1, unit: '%' };
   const sm = byId('stok-kesim');

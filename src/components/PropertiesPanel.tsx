@@ -5,6 +5,8 @@ import { EDGE_KINDS, KAIZEN_STATUSES, isStockKind, type KaizenData, type KaizenS
 import { INVENTORY_FIELDS, VSM_FIELDS, VSM_LIMITS, KAIZEN_STATUS_LABELS, emptyInventory, emptyKaizen, emptyVsm, formatDays, formatDuration, formatMoney, formatNumber, toSeconds , VSM_FIELD_SPECS, type QuantitySpec} from '../model/vsm';
 import { effectiveCycleSeconds, inventoryDays, isOverTakt, stockValue, supermarketSizing, type VsmSummary } from '../model/vsmCalc';
 import { MapPanel } from './MapPanel';
+import { WorkStepsEditor } from './Yamazumi';
+import type { YamazumiResult } from '../model/yamazumi';
 import { stockDemand } from '../model/families';
 import { OeeBreakdown } from './OeeBreakdown';
 import { QuantityTable } from './QuantityFields';
@@ -17,6 +19,7 @@ interface Props {
   selectedEdges: FlowEdge[];
   vsmMap: VsmMapData;
   summary: VsmSummary;
+  yamazumi: YamazumiResult;
   /** Gelecek durum varsa iki haritanın özeti */
   compare: { current: VsmSummary; future: VsmSummary } | null;
   onExportCsv: () => void;
@@ -50,6 +53,7 @@ export function PropertiesPanel(props: Props) {
           <MapPanel
             vsmMap={props.vsmMap}
             summary={props.summary}
+            yamazumi={props.yamazumi}
             kaizens={props.nodes.filter((n) => n.type === 'kaizen')}
             compare={props.compare}
             onExportCsv={props.onExportCsv}
@@ -481,6 +485,7 @@ function VsmEditor({
         <summary>Gelişmiş alanlar</summary>
         <QuantityTable specs={advanced} values={vsm.fields} onChange={setField} idPrefix="vsm" />
       </details>
+      <WorkStepsEditor vsm={vsm} taktSec={taktSec} onChange={onChange} />
       <BatchWaitNote vsm={vsm} vsmMap={vsmMap} />
       <EpeiBox vsm={vsm} vsmMap={vsmMap} netSec={netSec} />
       <label>

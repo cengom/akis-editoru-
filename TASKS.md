@@ -108,8 +108,12 @@
 - [x] Testleri GitHub'da her push'ta otomatik çalıştırma (GitHub Actions: typecheck + test + build)
 - [x] Vercel yayını testler geçince yapılır (`vercel.json` derleme komutu: `npm test && npm run build`)
 - [x] Zincir verimi (RTY) ve gereken giriş adedi
-- [x] VSM rehberi (uygulama içi `/kilavuz/` + PDF, 22 sayfa; `npm run kilavuz` ile görüntü ve PDF üretimi)
+- [x] VSM rehberi (uygulama içi `/kilavuz/` + PDF, 25 sayfa; `npm run kilavuz` ile görüntü ve PDF üretimi)
 - [x] Stok değeri (aile birim maliyeti, stok birim değeri, para birimine göre toplam, durum karşılaştırması) — sürüm 10
+- [x] Operatör dengeleme (Yamazumi): proseste iş adımları (ad, süre, tür, operatör), operatör/proses başına
+      yığılmış grafik ve tablo, takt çizgisi, denge oranı, gereken operatör; rehberde 4.4 bölümü — sürüm 11
+- [ ] İş adımlarını CSV (Excel) dışa/içe aktarmaya eklemek
+- [ ] Aile başına farklı iş adımları (şimdilik iş adımları tüm aileler için aynı)
 - [ ] Zaman çizgisini tuval koordinatlarında (çizimle birlikte yakınlaşan) seçenek olarak sunmak
 - [ ] Vardiya başına net süre girişi (günlük toplamı otomatik hesaplama)
 - [ ] Veri kutusunu düğüm boyutuna dahil etme ya da alt bağlantı noktasını kutunun altına taşıma seçeneği

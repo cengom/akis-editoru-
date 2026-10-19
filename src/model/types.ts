@@ -13,10 +13,12 @@ import type { Edge, Node } from '@xyflow/react';
  * 7: OEE için proses alanları (ideal C/T, plansız duruş, günlük değişim sayısı).
  * 8: birden fazla ürün ailesi (karma model): haritada aile listesi (talep ve paket adedi aileye taşındı),
  *    proseste geçen aileler ve aile başına C/T, stokta aile.
+ * 9: hız belirleyici proses ve parti beklemesi seçeneği. 10: stok ve aile birim maliyeti (stok değeri).
+ * 11: proseste iş adımları (`workSteps`: ad, süre, tür, operatör) — operatör dengeleme (Yamazumi) için.
  * Eski sürüm dosyaları hâlâ açılır; eksik alanlar boş kabul edilir, kaldırılan alanlar yok sayılır.
  */
-export const SCHEMA_VERSION = 10 as const;
-export const SUPPORTED_SCHEMA_VERSIONS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] as const;
+export const SCHEMA_VERSION = 11 as const;
+export const SUPPORTED_SCHEMA_VERSIONS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] as const;
 
 /** Dosyanın bu uygulamaya ait olduğunu gösteren işaret. */
 export const APP_ID = 'akis-editoru' as const;
@@ -122,6 +124,24 @@ export interface VsmQuantity {
   unit: VsmUnit;
 }
 
+/**
+ * İş adımının türü (Yamazumi): `va` katma değerli, `nva` katma değersiz ama gerekli (ör. parça alma),
+ * `waste` israf (ör. bekleme, arama).
+ */
+export const WORK_KINDS = ['va', 'nva', 'waste'] as const;
+export type WorkKind = (typeof WORK_KINDS)[number];
+
+/** Operatörün bir parça için yaptığı tek bir iş adımı. */
+export interface WorkStep {
+  id: string;
+  name: string;
+  /** sn ya da dk; boş = süre girilmedi (hesaba katılmaz) */
+  time: VsmQuantity;
+  kind: WorkKind;
+  /** Adımı yapan operatör (1, 2, 3 …) */
+  operator: number;
+}
+
 /** Yalnızca "proses" şekillerinde bulunan VSM verileri. */
 export interface VsmData {
   /** Veri kutusu tuvalde, prosesin altında gösterilsin mi? */
@@ -132,6 +152,8 @@ export interface VsmData {
   familyIds: string[];
   /** Aile başına çevrim süresi; olmayan aile için ortak `cycleTime` kullanılır */
   cycleByFamily: Record<string, VsmQuantity>;
+  /** İş adımları (sıralı). Boş liste = adım girilmedi; Yamazumi C/T ve operatör alanını kullanır. */
+  workSteps: WorkStep[];
 }
 
 /** Stok üçgeninin verisi. Miktar adet ya da doğrudan gün olarak girilir. */

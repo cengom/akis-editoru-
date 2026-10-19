@@ -8,6 +8,8 @@ import { FamilyEditor } from './FamilyEditor';
 import { OeeTable } from './OeeBreakdown';
 import { KaizenList } from './KaizenList';
 import { StateCompare } from './StateCompare';
+import { YamazumiSection } from './Yamazumi';
+import type { YamazumiResult } from '../model/yamazumi';
 
 interface Props {
   vsmMap: VsmMapData;
@@ -16,12 +18,13 @@ interface Props {
   onExportCsv: () => void;
   onImportCsv: (file: File) => void;
   summary: VsmSummary;
+  yamazumi: YamazumiResult;
   onChange: (map: VsmMapData) => void;
   onSelectNode: (id: string) => void;
 }
 
 /** Hiçbir şey seçili değilken: harita düzeyi VSM verileri ve hesaplanan VSM özeti. */
-export function MapPanel({ vsmMap, summary, kaizens, compare, onChange, onSelectNode, onExportCsv, onImportCsv }: Props) {
+export function MapPanel({ vsmMap, summary, yamazumi, kaizens, compare, onChange, onSelectNode, onExportCsv, onImportCsv }: Props) {
   const csvInput = useRef<HTMLInputElement>(null);
   const basic = VSM_MAP_FIELDS.filter((f) => !f.advanced);
   const advanced = VSM_MAP_FIELDS.filter((f) => f.advanced);
@@ -261,6 +264,7 @@ export function MapPanel({ vsmMap, summary, kaizens, compare, onChange, onSelect
         ) : (
           <TaktChart summary={summary} onSelectNode={onSelectNode} />
         )}
+        <YamazumiSection result={yamazumi} mixed={summary.mixed} onSelectNode={onSelectNode} />
         <OeeTable summary={summary} onSelectNode={onSelectNode} />
         {summary.inventoriesMissingDemand > 0 && (
           <p className="warning-box">

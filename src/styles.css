@@ -652,3 +652,102 @@ details.help { margin-bottom: 12px; }
 .epei-box h4 { margin: 0 0 4px; font-size: 13px; }
 .epei-box p { margin: 2px 0; }
 .tl-batch { font-size: 11px; }
+
+/* ---------- Operatör dengeleme (Yamazumi) ---------- */
+/* Türler renk + desenle ayrılır: katma değerli düz, gerekli çizgili, israf kareli, belirsiz noktalı. */
+.yz-section { display: grid; gap: 6px; margin-top: 8px; }
+.yz-switch { display: inline-flex; justify-self: start; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
+.yz-switch button { border: none; border-radius: 0; padding: 3px 10px; font-size: 12px; background: #fff; }
+.yz-switch button + button { border-left: 1px solid var(--border); }
+.yamazumi .yz-switch { margin-bottom: 4px; }
+.yz-switch button[aria-pressed='true'] { background: #eff6ff; color: #1d4ed8; font-weight: 600; }
+.yamazumi { margin: 0; display: grid; gap: 4px; }
+.yz-scroll { overflow-x: auto; padding: 0 2px; }
+.yz-plot {
+  position: relative;
+  height: 150px;
+  margin: 18px 0 40px;
+  display: flex;
+  align-items: stretch;
+  gap: 6px;
+  border-bottom: 1px solid #9ca3af;
+}
+.yz-col {
+  position: relative;
+  flex: 1 0 38px;
+  max-width: 64px;
+  display: flex;
+  flex-direction: column-reverse;
+  border: none;
+  background: none;
+  padding: 0;
+  border-radius: 0;
+  font: inherit;
+}
+button.yz-col:hover { background: #f8fafc; }
+.yz-seg { display: block; width: 100%; flex: none; border-top: 1px solid #fff; box-sizing: border-box; }
+.yz-va { background: #1baf7a; }
+.yz-nva { background: repeating-linear-gradient(45deg, #eda100 0 3px, #fde7a8 3px 6px); }
+.yz-waste {
+  background-color: #fbd0cf;
+  background-image: linear-gradient(#e34948 2px, transparent 2px), linear-gradient(90deg, #e34948 2px, transparent 2px);
+  background-size: 6px 6px;
+}
+.yz-unknown { background-color: #d1d5db; background-image: radial-gradient(#6b7280 1px, transparent 1.2px); background-size: 5px 5px; }
+.yz-value { position: relative; z-index: 2; align-self: center; padding: 0 2px; background: var(--panel); font-size: 10px; color: #374151; text-align: center; font-variant-numeric: tabular-nums; white-space: nowrap; line-height: 14px; }
+.yz-over .yz-value { color: #b91c1c; font-weight: 700; }
+.yz-label {
+  position: absolute;
+  top: calc(100% + 3px);
+  left: -2px;
+  right: -2px;
+  font-size: 10px;
+  line-height: 1.2;
+  color: #111827;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.yz-sub { display: block; color: var(--muted); overflow: hidden; text-overflow: ellipsis; }
+.yz-takt { position: absolute; left: 0; right: 0; height: 0; border-top: 2px dashed #111827; pointer-events: none; z-index: 1; }
+.yz-takt span { position: absolute; right: 0; bottom: 2px; background: var(--panel); padding: 0 3px; font-size: 11px; font-weight: 600; color: #111827; white-space: nowrap; }
+.yz-cap { position: absolute; left: -4px; right: -4px; height: 3px; background: #6250d6; outline: 1px solid #fff; pointer-events: none; z-index: 2; transform: translateY(50%); }
+.yz-legend-item { display: inline-flex; align-items: center; gap: 4px; margin-right: 6px; }
+.yz-key { display: inline-block; width: 12px; height: 10px; border-radius: 2px; }
+.yz-key-cap { height: 3px; background: #6250d6; border-radius: 0; }
+.yz-key-takt { height: 0; border-top: 2px dashed #111827; border-radius: 0; }
+.yz-table-wrap { overflow-x: auto; }
+.yz-table { border-collapse: collapse; font-size: 11px; width: 100%; }
+.yz-table th, .yz-table td { padding: 3px 4px; border-bottom: 1px solid #e5e7eb; text-align: right; white-space: nowrap; }
+.yz-table th[scope='row'], .yz-table thead th:first-child { text-align: left; white-space: normal; }
+.yz-table thead th { font-weight: 500; color: var(--muted); white-space: normal; vertical-align: bottom; }
+.yz-row-over td:last-child { color: #b91c1c; font-weight: 600; }
+.yz-section dl { display: grid; grid-template-columns: 1fr auto; gap: 4px 8px; margin: 0; font-size: 13px; }
+.yz-section dd { margin: 0; text-align: right; }
+.work-steps { display: grid; gap: 6px; }
+.work-steps > summary { font-weight: 600; font-size: 13px; cursor: pointer; }
+.work-steps[open] > summary { margin-bottom: 6px; }
+.work-steps > * + * { margin-top: 6px; }
+.ws-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.ws-row {
+  display: grid;
+  grid-template-columns: 20px 1fr auto;
+  grid-template-areas: 'num name actions' 'num fields fields';
+  gap: 4px;
+  padding: 6px;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+}
+.ws-num { grid-area: num; font-size: 12px; color: var(--muted); padding-top: 6px; }
+.ws-name { grid-area: name; min-width: 0; padding: 5px 6px; }
+.ws-actions { grid-area: actions; display: flex; gap: 2px; }
+.ws-actions button { padding: 2px 6px; font-size: 12px; }
+.ws-fields { grid-area: fields; display: grid; grid-template-columns: 42px 44px 1fr 50px; gap: 3px; }
+.ws-fields select, .ws-time input { font: inherit; font-size: 12px; width: 100%; padding: 4px 2px; border: 1px solid var(--border); border-radius: 6px; background: #fff; min-width: 0; }
+.ws-time input { text-align: right; padding: 4px 5px; }
+.ws-time input.invalid { border-color: var(--danger); background: #fef2f2; }
+.ws-time .field-error { display: block; color: var(--danger); font-size: 10px; }
+.ws-kind-va { box-shadow: inset 4px 0 0 #1baf7a; }
+.ws-kind-nva { box-shadow: inset 4px 0 0 #eda100; }
+.ws-kind-waste { box-shadow: inset 4px 0 0 #e34948; }

@@ -26,6 +26,10 @@ yalnızca biri olacak; uygulama bir VSM hesaplayıcısına dönüştürülmemeli
   lead time = bekleme + işlem süresi (net çalışma süresiyle güne çevrilir); değer katma oranı;
   takt üstü prosesler. Saf fonksiyonlar; `null` toplama katılmaz, 0 katılır. Proseslere ayrı
   "değer katan/katmayan süre" ya da WIP alanı ekleme (sürüm 4'te bilinçli olarak kaldırıldı).
+- `src/model/yamazumi.ts` — operatör dengeleme (Yamazumi): `operatorLoads`, `balanceOf`,
+  `requiredOperatorsOf`, `computeYamazumi`. İş adımı (`data.vsm.workSteps`) yoksa C/T ve operatör alanına
+  geri düşer (operatör boş → 1 kabul, 0 → otomatik, grafiğe girmez). Görünümdeki ailenin taktı kullanılır.
+  Arayüz `src/components/Yamazumi.tsx` (`WorkStepsEditor` proses panelinde, `YamazumiSection` özette).
 - `src/model/edges.ts` — bağlantı türlerinin adları ve ok uçları. Çizim: `src/edges/FlowEdgeView.tsx` + CSS.
 - `src/components/MapPanel.tsx` (harita verileri + özet), `Timeline.tsx` (alt zaman çizgisi),
   `QuantityFields.tsx` (sayı + birim satırları; proses ve harita alanları ortak kullanır),
@@ -61,8 +65,8 @@ yalnızca biri olacak; uygulama bir VSM hesaplayıcısına dönüştürülmemeli
 - Bağlantılar `ConnectionMode.Loose` ile çalışır; her şeklin dört kenarında `top/right/bottom/left`
   kimlikli bağlantı noktası vardır. Kenar kimlikleri kayıtta saklanır.
 - Katman sırası: departman alanı (zIndex 0) < oklar (1) < diğer şekiller (2). Seçili ok öne çıkar.
-- JSON dosyası, yerel kayıt ve buluttaki `document_json` **aynı** formatı kullanır. Güncel sürüm 10;
-  sürüm 1–9 da okunur (kaldırılan alanlar yok sayılır, kullanıcıya `warnings` ile bildirilir).
+- JSON dosyası, yerel kayıt ve buluttaki `document_json` **aynı** formatı kullanır. Güncel sürüm 11;
+  sürüm 1–10 da okunur (kaldırılan alanlar yok sayılır, kullanıcıya `warnings` ile bildirilir).
 - Stok verisi `data.inventory`; stok tutan şekiller `STOCK_KINDS` (stok üçgeni, süpermarket, FIFO,
   güvenlik stoğu) ve hepsi zaman çizgisinde bekleme sayılır. Kaizen verisi `data.kaizen`.
 - Mevcut / gelecek durum: üst düzey alanlar her zaman **mevcut durumdur**; gelecek durum `futureState`.

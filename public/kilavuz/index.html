@@ -98,7 +98,7 @@
   yapıldığını birlikte anlatır. Baştan sona uygulamadaki <strong>“Örnek süreç”</strong> haritası kullanılır;
   aynı sayıları kendi ekranınızda görebilirsiniz.</p>
   <p class="muted">Örnekteki şirket, ürünler, süreler ve maliyetler tamamen uydurmadır; gerçek bir şirkete ait
-  değildir. Rehber Ekim 2026'daki uygulama sürümüne göre yazıldı (kayıt formatı sürüm 10).</p>
+  değildir. Rehber Ekim 2026'daki uygulama sürümüne göre yazıldı (kayıt formatı sürüm 11).</p>
 </section>
 
 <nav class="toc" aria-label="İçindekiler">
@@ -346,6 +346,57 @@ görünür. Kesim'in kapasitesi ≈ 455 adet/gün, talep 460: yük %101 — kapa
 Girilen EPEI (2 gün) bununla uyumlu. Girilen değer hesaplanandan kısa olsaydı “bu sıklıkta değişime zaman
 yetmez” uyarısı çıkardı. Çözüm: setup süresini kısaltmak (SMED) ya da EPEI'yi uzatmak.</p>
 
+<h3 id="yamazumi">4.4 Operatör dengeleme (Yamazumi)</h3>
+<p>Takt grafiği her prosesi tek bir sayıyla (C/T) gösterir. <strong>Yamazumi</strong> (Japonca “üst üste
+yığmak”) bir adım daha ileri gider: her <strong>operatörün</strong> bir parça için yaptığı işleri tek tek
+üst üste koyar. Böylece kimin fazla, kimin az yüklü olduğu ve işin ne kadarının israf olduğu görünür.</p>
+
+<p><strong>İş adımlarını girmek:</strong> prosesi seçin, panelde <em>İş adımları (operatör dengeleme)</em>
+bölümünü açın ve <em>+ İş adımı ekle</em> ile her işi yazın: adı, süresi (sn ya da dk), türü ve hangi
+operatörün yaptığı (Op 1, Op 2 …). ↑ ↓ düğmeleri sırayı değiştirir, ✕ siler. Üç tür vardır:</p>
+<ul>
+  <li><strong>Değer katan (katma değerli):</strong> müşterinin parasını ödediği iş — ör. yatağı takmak, vidaları sıkmak.
+    Grafikte düz yeşil.</li>
+  <li><strong>Gerekli (katma değersiz):</strong> şimdilik kaçınılmaz ama değer katmayan iş — ör. parçayı kutudan
+    almak, tork kontrolü. Çizgili turuncu.</li>
+  <li><strong>İsraf:</strong> tamamen kaldırılabilecek iş — ör. vida aramak, beklemek, gereksiz taşıma. Kareli kırmızı.</li>
+</ul>
+<p>İş adımı girilmemiş proseste uygulama C/T ve operatör sayısını kullanır: her operatörün yükü C/T kabul
+edilir, türü bilinmediği için gri noktalı gösterilir. Operatör sayısı boşsa 1 kabul edilir; 0 yazılmışsa
+(otomatik makine) proses grafiğe girmez. Süresi boş bırakılan adım hesaba katılmaz (0 yazılan adım katılır).</p>
+
+<figure class="narrow">
+  <img src="img/is-adimlari.png" alt="Montaj prosesinin iş adımları listesi ve iki operatörlü küçük Yamazumi grafiği" />
+  <figcaption>Şekil 6c – Montaj'ın iş adımları (proses paneli). 1. operatör 90 sn, 2. operatör 70 sn.</figcaption>
+</figure>
+
+<p><strong>Özetteki grafik:</strong> VSM özetinde <em>Operatör dengeleme (Yamazumi)</em> bölümü tüm hattı
+gösterir. <em>Operatör başına</em> her operatörü, <em>Proses başına</em> her prosesin toplam işini bir sütun
+yapar. Yatay kesikli çizgi takttır; çizgiyi aşan sütun ⚠ ile işaretlenir. Birden çok operatörlü proseste mor
+çizgi “takt × operatör sayısı”dır: proses o kadar işi takt içinde bitirebilir. <em>Tablo</em> düğmesi aynı
+sayıları tablo olarak gösterir.</p>
+
+<figure class="narrow">
+  <img src="img/yamazumi.png" alt="Yamazumi grafiği: Kesim, Montaj 1. ve 2. operatör ve Paketleme sütunları, 60 sn takt çizgisi" />
+  <figcaption>Şekil 6d – Hattın Yamazumi grafiği (mevcut durum). Montaj'ın iki operatörü de taktı aşıyor.</figcaption>
+</figure>
+
+<div class="table-wrap"><table>
+  <thead><tr><th>Gösterge</th><th>Nasıl hesaplanır?</th><th>Örnek</th><th>Nasıl yorumlanır?</th></tr></thead>
+  <tbody>
+    <tr><td>Toplam iş</td><td>Σ tüm operatörlerin yükü</td><td>4 dk (240 sn)</td><td>Bir parça için hatta harcanan toplam insan işi.</td></tr>
+    <tr><td>En yüklü operatör</td><td>En büyük sütun</td><td>90 sn (Montaj, Op 1)</td><td>Hattı yavaşlatan kişi; takttan büyükse talep karşılanamaz.</td></tr>
+    <tr><td>Denge oranı</td><td>Σ iş ÷ (operatör sayısı × en yüklü)</td><td>240 ÷ (4 × 90) = %66,7</td><td>%100 = herkes eşit yüklü. Düşük oran, bazı operatörlerin beklediğini gösterir.</td></tr>
+    <tr><td>Gereken operatör</td><td>⌈Σ iş ÷ takt⌉</td><td>⌈240 ÷ 60⌉ = 4 kişi</td><td>İş tam dengelenseydi gereken kişi sayısı.</td></tr>
+  </tbody>
+</table></div>
+<p>Montaj'da 160 sn işin 32 sn'si israf, 35 sn'si gerekli iş. İsraf kaldırılır ve iş iki kişiye yeniden
+dağıtılırsa (gelecek durumda 55 + 54 sn) iki operatör de taktın altına iner ve Montaj'ın C/T'si 55 sn olur.</p>
+<p class="muted">Not: Özetteki “Gereken operatör (teorik)” Σ C/T'yi kullanır (her proseste bir kişi varsayar,
+örnekte 3). Yamazumi ise girilen iş adımlarındaki gerçek iş içeriğini kullanır; Montaj'da iki kişinin işi
+toplam 160 sn olduğu için sonuç 4'tür. Karma modelde iş adımları tüm aileler için aynı kabul edilir ve
+görünümdeki ailenin taktı kullanılır.</p>
+
 <div class="box">
   <p><strong>Kısa yorum (örnek):</strong> Ürün hatta 4,42 gün kalıyor ama yalnızca 2,83 dakika işleniyor.
   Bekleme en çok hammaddede (2 gün) ve Montaj sonrası stokta (1,5 gün). Montaj takt üstü; Kesim duruş ve
@@ -507,6 +558,9 @@ kullanılabilir.</p>
     <tr><td>Süpermarket</td><td>talep × yenileme × (1 + güvenlik); kart = ⌈÷ paket adedi⌉</td></tr>
     <tr><td>Zincir verimi (RTY)</td><td>Π(1 − hurda); gereken giriş = talep ÷ RTY</td></tr>
     <tr><td>Stok değeri</td><td>adet (ya da gün × talep) × birim değer</td></tr>
+    <tr><td>Operatör yükü (Yamazumi)</td><td>Σ operatöre atanmış iş adımlarının süresi (adım yoksa C/T)</td></tr>
+    <tr><td>Denge oranı</td><td>Σ iş ÷ (operatör sayısı × en yüklü operatör)</td></tr>
+    <tr><td>Gereken operatör (Yamazumi)</td><td>⌈Σ iş ÷ takt⌉</td></tr>
   </tbody>
 </table></div>
 

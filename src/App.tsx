@@ -53,6 +53,7 @@ import {
   type VsmMapData,
 } from './model/types';
 import { computeSummary } from './model/vsmCalc';
+import { computeYamazumi } from './model/yamazumi';
 import { toSeconds } from './model/vsm';
 import { isMultiFamily, passes, stockDemand, stockInView, viewDemand, viewFamily } from './model/families';
 import { edgeTypes } from './edges/FlowEdgeView';
@@ -151,6 +152,7 @@ function Editor() {
 
   /* ---------- VSM hesapları ---------- */
   const summary = useMemo(() => computeSummary(nodes, edges, vsmMap), [nodes, edges, vsmMap]);
+  const yamazumi = useMemo(() => computeYamazumi(nodes, edges, vsmMap), [nodes, edges, vsmMap]);
   const otherSummary = useMemo(() => {
     if (!otherState) return null;
     const flow = fromState(otherState);
@@ -773,6 +775,7 @@ function Editor() {
           onUpdateNode={updateNode}
           vsmMap={vsmMap}
           summary={summary}
+          yamazumi={yamazumi}
           compare={compare}
           onExportCsv={exportCsv}
           onImportCsv={(f) => void importCsv(f)}

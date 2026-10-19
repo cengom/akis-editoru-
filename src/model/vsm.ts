@@ -3,6 +3,7 @@ import {
   VSM_FIELD_KEYS,
   VSM_MAP_FIELD_KEYS,
   KAIZEN_STATUSES,
+  WORK_KINDS,
   type InventoryData,
   type KaizenData,
   type KaizenStatus,
@@ -13,6 +14,8 @@ import {
   type VsmMapFieldKey,
   type VsmQuantity,
   type VsmUnit,
+  type WorkKind,
+  type WorkStep,
 } from './types';
 
 /** Sayı + birim biçimindeki bir alanın tanımı: etiket, izinli birimler ve kurallar. */
@@ -142,6 +145,33 @@ export const INVENTORY_FIELDS: readonly QuantitySpec<InventoryFieldKey>[] = [
   { key: 'safetyRate', label: 'Güvenlik payı', short: 'Güvenlik', units: ['%'], defaultUnit: '%', max: 1000, advanced: true },
 ];
 
+/* ---------- İş adımları (Yamazumi) ---------- */
+
+export const WORK_STEP_TIME_SPEC: QuantitySpec<'time'> = {
+  key: 'time',
+  label: 'Süre',
+  short: 'Süre',
+  units: ['sn', 'dk'],
+  defaultUnit: 'sn',
+  advanced: false,
+};
+
+export const WORK_KIND_LABELS: Record<WorkKind, string> = {
+  va: 'Katma değerli',
+  nva: 'Gerekli (katma değersiz)',
+  waste: 'İsraf',
+};
+
+/** Dar seçim kutusu için kısa adlar. */
+export const WORK_KIND_SHORT: Record<WorkKind, string> = { va: 'Değer katan', nva: 'Gerekli', waste: 'İsraf' };
+
+/** Bir prosesteki en fazla iş adımı ve en büyük operatör numarası. */
+export const WORK_LIMITS = { steps: 100, operator: 50, name: 200 };
+
+export function newWorkStep(id: string, operator = 1): WorkStep {
+  return { id, name: '', time: { value: null, unit: 'sn' }, kind: 'va', operator };
+}
+
 export const VSM_FIELD_SPECS = Object.fromEntries(VSM_FIELDS.map((f) => [f.key, f])) as Record<VsmFieldKey, VsmFieldSpec>;
 
 /* ---------- Harita (hat) alanları ---------- */
@@ -230,7 +260,7 @@ function emptyFields<K extends string>(specs: readonly QuantitySpec<K>[]): Recor
 
 /** Yeni bir proses için boş VSM verisi. Veri girilince kutu kendiliğinden görünür. */
 export function emptyVsm(): VsmData {
-  return { showDataBox: true, fields: emptyFields(VSM_FIELDS), note: '', familyIds: [], cycleByFamily: {} };
+  return { showDataBox: true, fields: emptyFields(VSM_FIELDS), note: '', familyIds: [], cycleByFamily: {}, workSteps: [] };
 }
 
 /** Yeni bir harita için boş genel VSM verisi. */
@@ -268,6 +298,7 @@ export function cloneVsm(vsm: VsmData): VsmData {
     note: vsm.note,
     familyIds: [...vsm.familyIds],
     cycleByFamily: Object.fromEntries(Object.entries(vsm.cycleByFamily).map(([k, q]) => [k, { ...q }])),
+    workSteps: (vsm.workSteps ?? []).map((w) => ({ ...w, time: { ...w.time } })),
   };
 }
 
@@ -288,7 +319,8 @@ export function hasVsmContent(vsm: VsmData): boolean {
   return (
     vsm.note.trim() !== '' ||
     VSM_FIELD_KEYS.some((k) => vsm.fields[k].value !== null) ||
-    Object.values(vsm.cycleByFamily).some((q) => q.value !== null)
+    Object.values(vsm.cycleByFamily).some((q) => q.value !== null) ||
+    vsm.workSteps.length > 0
   );
 }
 
@@ -460,7 +492,52 @@ export function parseVsm(raw: unknown, where: string, fail: Fail): VsmData | nul
       if (parsed.cycleTime.value !== null) result.cycleByFamily[fid] = parsed.cycleTime;
     }
   }
+  // Sürüm 11 öncesinde yoktur: iş adımı girilmemiş (boş liste).
+  if (raw.workSteps !== undefined && raw.workSteps !== null) {
+    const steps = parseWorkSteps(raw.workSteps, where, fail);
+    if (!steps) return null;
+    result.workSteps = steps;
+  }
   return result;
+}
+
+/** İş adımlarını okur. Hatalı süre ya da operatör numarası dosyayı reddeder; eksik ad/tür varsayılana döner. */
+export function parseWorkSteps(raw: unknown, where: string, fail: Fail): WorkStep[] | null {
+  if (!Array.isArray(raw)) {
+    fail(`${where}: iş adımları geçersiz.`);
+    return null;
+  }
+  if (raw.length > WORK_LIMITS.steps) {
+    fail(`${where}: en fazla ${WORK_LIMITS.steps} iş adımı olabilir.`);
+    return null;
+  }
+  const ids = new Set<string>();
+  const steps: WorkStep[] = [];
+  for (const [i, w] of raw.entries()) {
+    const at = `${where}, ${i + 1}. iş adımı`;
+    if (!isPlainObject(w)) {
+      fail(`${at}: geçersiz.`);
+      return null;
+    }
+    const q = parseQuantityFields({ time: w.time }, [WORK_STEP_TIME_SPEC], at, fail);
+    if (!q) return null;
+    const op = w.operator === undefined || w.operator === null ? 1 : w.operator;
+    if (typeof op !== 'number' || !Number.isInteger(op) || op < 1 || op > WORK_LIMITS.operator) {
+      fail(`${at}: operatör numarası 1 ile ${WORK_LIMITS.operator} arasında tam sayı olmalı.`);
+      return null;
+    }
+    let id = typeof w.id === 'string' && w.id && w.id.length <= 100 ? w.id : `adim-${i + 1}`;
+    while (ids.has(id)) id = `${id}-${i + 1}`;
+    ids.add(id);
+    steps.push({
+      id,
+      name: typeof w.name === 'string' ? w.name.slice(0, WORK_LIMITS.name) : '',
+      time: q.time,
+      kind: WORK_KINDS.includes(w.kind as WorkKind) ? (w.kind as WorkKind) : 'va',
+      operator: op,
+    });
+  }
+  return steps;
 }
 
 /** Haritanın genel VSM verisini okur. Eski sürüm dosyalarında yoktur; boş kabul edilir. */
